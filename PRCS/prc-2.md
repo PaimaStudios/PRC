@@ -138,11 +138,11 @@ The main functions accept an array of token addresses and token IDs to be able t
 
 ### NFT locking UX
 
-Upon locking an NFT in an application that integrates the Hololocker, it might happen that users will get confused as to where did their NFTs go. An option to mint a sort of a "receipt NFT" in exchange for the locked NFT was thought of, but it does not sufficiently solve the inconvenience and would greatly increase the complexity and transactional costs. Therefore, this approach is not recommended.
+Upon locking an NFT in an application that integrates the Hololocker, it might happen that users will get confused as to where did their NFTs go. An option to mint a sort of a "receipt NFT" in exchange for the locked NFT was thought of, but it does not sufficiently solve the inconvenience and would greatly increase the complexity and transactional costs. It would roughly double the gas cost of `lock` operation (85k gas units -> 161k gas units) and increase the cost of `withdraw` operation by 60% (7564 gas units -> 12125 gas units). Therefore, this approach is not recommended.
 
 ### Projecting other standards (ERC20, ERC1155...)
 
-Should there be a need for supporting other token standards than ERC721, the interface should be appropriately modified to accomodate for the differences between the standards' methods of token identification.
+Should there be a need for supporting other token standards than ERC721, this interface can be appropriately modified to accomodate for the differences between the standards' methods of token identification. For example: To support ERC20, instead of dealing with token IDs, you'd be dealing with token amounts. That would mean changing the `LockInfo` struct, the events, and the function parameters slightly.
 
 ## Reference Implementation
 
