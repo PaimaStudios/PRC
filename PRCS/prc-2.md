@@ -131,10 +131,15 @@ interface IERC721Receiver {
 
 ## Rationale
 
-The Hololocker contract is in its core a NFT staking contract. While there have been attempts at EIPs on this matter, such as [https://eips.ethereum.org/EIPS/eip-4987](EIP-4987), none gained enough traction and approval to be finalized.
+The Hololocker contract is in its core a NFT staking contract. While there have been attempts at EIPs on this matter, such as [EIP-4987](https://eips.ethereum.org/EIPS/eip-4987), none gained enough traction and approval to be finalized.
 This proposal therefore proposes a standard for light-weight implementation of such mechanism.
 
 The main functions accept an array of token addresses and token IDs to be able to accomodate manipulations with multiple NFTs in one transaction, to save on transaction costs.
+
+### Consistent contract address
+
+To facilitate a more reliable experience for users, the Hololocker contract should be deployed to the same address across all EVM chains. This can be done by using a deployment proxy. Our reference implementation does this by specifiying a salt `bytes32(uint256(1))` in the [Foundry deployment script](https://github.com/dcSpark/projected-nft-whirlpool/blob/8b0d0367139eb9a43be94edff34a656258e25793/evm/script/Deploy.s.sol).  
+Hololocker is currently deployed at `0x416DcBD9e3e25a37B160f3032CddC9265A7410a2`.
 
 ### NFT locking UX
 
@@ -146,7 +151,7 @@ Should there be a need for supporting other token standards than ERC721, this in
 
 ## Reference Implementation
 
-https://github.com/dcSpark/projected-nft-whirlpool/blob/54b0a9b76dd73b5179bd5955a56b3085e396377b/evm/src/Hololocker.sol
+https://github.com/dcSpark/projected-nft-whirlpool/blob/8b0d0367139eb9a43be94edff34a656258e25793/evm/src/Hololocker.sol
 
 ## Security Considerations
 
