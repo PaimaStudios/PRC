@@ -97,7 +97,12 @@ interface HololockerInterface is IERC721Receiver {
     /// @param tokenIds NFT tokens identifiers
     function withdraw(address[] memory tokens, uint256[] memory tokenIds) external;
 
-    /// @notice Changes `lockTime` variable that is used in `requestUnlock`.
+    /// @notice Returns `lockTime`, which is the value that gets added to block.timestamp and saved as unlockTime
+    /// in the requestUnlock function.
+    /// @return The `lockTime` variable
+    function getLockTime() external view returns (uint256);
+
+    /// @notice Changes the `lockTime` variable.
     /// @dev This function should be protected with appropriate access control mechanisms.
     /// The new value should be checked against a sane upper limit constant, which if exceeded,
     /// should cause a revert.
@@ -136,10 +141,17 @@ This proposal therefore proposes a standard for light-weight implementation of s
 
 The main functions accept an array of token addresses and token IDs to be able to accomodate manipulations with multiple NFTs in one transaction, to save on transaction costs.
 
+The standard user interaction flow is: Lock -> Request Unlock -> (after `lockTime` has passed from the unlock request) Withdraw
+
+### Why Unlocking phase / lockTime ?
+
+If we did not have a special "Unlocking" state that requires users to wait for finality on the L1 before withdrawing their NFT, it could cause a situation where the same NFT is used in two places at once.
+Therefore, there must be a period of Unlocking state, initiated by the request for unlock and lasting the amount of seconds specified in the `lockTime` variable. This `lockTime` delay should reflect the finality period of the chain. Only after this delay has passed, the NFT can be withdrawn.
+
 ### Consistent contract address
 
 To facilitate a more reliable experience for users, the Hololocker contract should be deployed to the same address across all EVM chains. This can be done by using a deployment proxy. Our reference implementation does this by specifiying a salt `bytes32(uint256(1))` in the [Foundry deployment script](https://github.com/dcSpark/projected-nft-whirlpool/blob/8b0d0367139eb9a43be94edff34a656258e25793/evm/script/Deploy.s.sol).  
-Hololocker is currently deployed at `0x416DcBD9e3e25a37B160f3032CddC9265A7410a2`.
+Hololocker is currently deployed at `0x963ba25745aEE135EdCFC2d992D5A939d42738B6`.
 
 ### NFT locking UX
 
