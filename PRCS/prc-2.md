@@ -139,7 +139,7 @@ interface IERC721Receiver {
 The Hololocker contract is in its core a NFT staking contract. While there have been attempts at EIPs on this matter, such as [EIP-4987](https://eips.ethereum.org/EIPS/eip-4987), none gained enough traction and approval to be finalized.
 This proposal therefore proposes a standard for light-weight implementation of such mechanism.
 
-The main functions accept an array of token addresses and token IDs to be able to accomodate manipulations with multiple NFTs in one transaction, to save on transaction costs.
+The main functions accept an array of token addresses and token IDs to be able to accommodate manipulations with multiple NFTs in one transaction, to save on transaction costs.
 
 The standard user interaction flow is: Lock -> Request Unlock -> (after `lockTime` has passed from the unlock request) Withdraw
 
@@ -150,7 +150,7 @@ Therefore, there must be a period of Unlocking state, initiated by the request f
 
 ### Consistent contract address
 
-To facilitate a more reliable experience for users, the Hololocker contract should be deployed to the same address across all EVM chains. This can be done by using a deployment proxy. Our reference implementation does this by specifiying a salt `bytes32(uint256(1))` in the [Foundry deployment script](https://github.com/dcSpark/projected-nft-whirlpool/blob/8b0d0367139eb9a43be94edff34a656258e25793/evm/script/Deploy.s.sol).  
+To facilitate a more reliable experience for users, the Hololocker contract should be deployed to the same address across all EVM chains. This can be done by using a deployment proxy. Our reference implementation does this by specifying a salt `bytes32(uint256(1))` in the [Foundry deployment script](https://github.com/dcSpark/projected-nft-whirlpool/blob/8b0d0367139eb9a43be94edff34a656258e25793/evm/script/Deploy.s.sol).  
 Hololocker is currently deployed at `0x963ba25745aEE135EdCFC2d992D5A939d42738B6`.
 
 ### NFT locking UX
@@ -159,7 +159,7 @@ Upon locking an NFT in an application that integrates the Hololocker, it might h
 
 ### Projecting other standards (ERC20, ERC1155...)
 
-Should there be a need for supporting other token standards than ERC721, this interface can be appropriately modified to accomodate for the differences between the standards' methods of token identification. For example: To support ERC20, instead of dealing with token IDs, you'd be dealing with token amounts. That would mean changing the `LockInfo` struct, the events, and the function parameters slightly.
+Should there be a need for supporting other token standards than ERC721, this interface can be appropriately modified to accommodate for the differences between the standards' methods of token identification. For example: To support ERC20, instead of dealing with token IDs, you'd be dealing with token amounts. That would mean changing the `LockInfo` struct, the events, and the function parameters slightly.
 
 ## Reference Implementation
 
