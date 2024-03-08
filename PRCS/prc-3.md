@@ -112,13 +112,12 @@ interface IAppInverseProjectedNft is IInverseProjectedNft {
 }
 ```
 
-There are 2 error-cases to handle:
+There are 1 error-case to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
-2. Querying a `tokenID` 
 
 #### 2) Base Layer Initiated
 
-In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier`.
+In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`).
 
 There are 2 error-cases to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
@@ -140,49 +139,54 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
 }
 ```
 
-### Invalid mint response
+#### Invalid mint response
 
-TODO: define the format for malicious mints
+The metadata returned for any invalid mint should be either:
+
+1. Be a 404 permanently (easiest if your app does not store failed transactions)
+2. Metadata that clearly (image, name, etc.) states the NFT is invalid and the only attribute is `attributes: [{ "value": "invalid" }]`.
 
 ## Rationale
 
-Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead encodes which RPC call needs to be made to the game node to fetch the data this NFT encodes. Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism).
+Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the RPC call that needs to be made to the game node to fetch the data this NFT encodes. Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism).
 
 Key differences from ERC721:
-- `mint` can be called by anybody at anytime (infinite supply) and includes an `initialData` to pass in any other necessary data for the game, as well as possibly an `userTokenId` depending on which layer initiates the projection.
+- `mint` can be called by anybody at anytime (infinite supply). If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
 - `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of decentralization, there is an additional `tokenURI` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
 - The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. This function is callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
 
 ### Rationale App-layer
 
-By having `userTokenId` be a deterministic increasing value, it not only avoids double-mints (creating 2 NFTs pointing to the same app data), it also avoids any issues with failed transactions (if a tx on the base layer fails, just create a new tx)
+Having `userTokenId` be a deterministic increasing value not only avoids double-mints (creating 2 NFTs pointing to the same app data), it also avoids any issues with failed transactions (if a tx on the base layer fails, just create a new tx)
 
 Upside:
-- Parallelize
-Downside:
-- Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap)
+- No need to wait for finality or bridge latency in the base layer for the game to detect the Paima Primitive and update the state machine to reflect the mint.
 
-Edge case:
-- Mint an NFT on the base layer that doesn't exist in the game yet, but exists later. This isn't a security vulnerability, but marketplaces may be slow to update their cache
+Downside:
+- Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
+
+- Requires extra logic in the Solidity smart contract to avoid double-mints (only 1 address can claim any minted data in the base layer and ensure the address can claim it only once) which increases tx fees.
 
 ### Rationale Base-layer
 
-- Need to avoid double mint
-    - Minter minting twice
-    - Other people minting your NFT
-
 Upside:
--
+- Lower gas cost because uniqueness is guaranteed by `tokenId` (no need for extra data structures to avoid double-mints)
+
 Downside:
 - Extra `calldata` cost for `initialData`
+- Need to wait for finality on the base layer (+ any bridge latency if the layer is not natively monitored by the app).
+- Mints may fail if the mint is no longer valid by the time the app learns about it (ex: passing `initialData` to mint a monster the user no longer owns by the time the app sees the mint transaction)
+- More complex game logic (ex: what happens if the user mints a monster and the mint transaction is seen when the monster is in a battle? You could decide to wait until the user has finished the battle to process the mint, but this adds extra complexity to your state machine).
 
 ## Reference Implementation
 
-https://github.com/PaimaStudios/paima-engine/blob/master/packages/contracts/evm-contracts/contracts/token/InverseProjectedNft.sol
+You can find all the contracts and interfaces in the Paima Engine codebase [here](https://github.com/PaimaStudios/paima-engine/blob/master/packages/contracts/evm-contracts/contracts/token/)
 
 ## Security Considerations
 
-TODO
+**Honest RPC**: This standard relies on the default RPC being honestly operated. This is, however, not really a new trust assumption because this is a required assumption in nearly all dApps at the moment (including those like OpenSea where you have to trust them to be operating their website honestly). Just like somebody can run their own Ethereum fullnode to verify the data they see in an NFT marketplace, they can also sync fullnode for a Paima app and use their own RPC to fetch the state.
+
+**App layer finality**: If the app layer can rollback, it can cause the data from the RPC call to change or become invalid entirely. NFT marketplaces may not update their cache to reflect these changes right away, but can be force-updated by anyone using [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906).
 
 ## Copyright
 
