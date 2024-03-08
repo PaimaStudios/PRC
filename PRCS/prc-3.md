@@ -73,7 +73,6 @@ In this case, the user first initiates the projection on the game layer by speci
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
 
-
 ```mermaid
 sequenceDiagram
     actor Buyer
@@ -119,9 +118,24 @@ There are 1 error-case to handle:
 
 In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`).
 
-There are 2 error-cases to handle:
-1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
-2. Invalid `initialData` provided (the definition of invalid is app-specific)
+```mermaid
+sequenceDiagram
+    actor Buyer
+    participant L1
+    actor Seller
+    participant Game
+    destroy Seller
+    Seller->>L1: Mint NFT to chainId <br> using address<br> passing in userTokenId
+    activate L1
+    L1->>Game: Paima Primitive detects NFT creation
+    L1->>Game: tokenURI
+    Game->>L1: Asset state in the game
+    Buyer->>L1: Buys NFT on market
+    Buyer->>L1: Burn NFT
+    deactivate L1
+    L1->>Game: Paima Primitive detects burn
+    Game->>Game: Give asset to buyer in-game
+```
 
 This case uses the following extension to the base interface
 
@@ -138,6 +152,10 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
     function mint(address _to, string calldata initialData) external returns (uint256);
 }
 ```
+
+There are 2 error-cases to handle:
+1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
+2. Invalid `initialData` provided (the definition of invalid is app-specific)
 
 #### Invalid mint response
 
@@ -164,13 +182,15 @@ Upside:
 
 Downside:
 - Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
-
 - Requires extra logic in the Solidity smart contract to avoid double-mints (only 1 address can claim any minted data in the base layer and ensure the address can claim it only once) which increases tx fees.
+- ~175% the gas cost of the base-layer approach (130k ~ 175k gas)
 
 ### Rationale Base-layer
 
 Upside:
 - Lower gas cost because uniqueness is guaranteed by `tokenId` (no need for extra data structures to avoid double-mints)
+- Does not require any transaction on the app layer
+- 57% the gas cost of the app-layer approach (75k ~ 100k gas)
 
 Downside:
 - Extra `calldata` cost for `initialData`
