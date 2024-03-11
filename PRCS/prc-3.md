@@ -8,7 +8,7 @@ created: 2024-03-03
 
 ## Abstract
 
-Allows tradability of game state directly on popular networks helps achieve a lot more composability and liquidity than would otherwise be possible. This standard helps define how to define NFTs in different chains without introducing centralization, lowered security or wait times for finality.
+Allowing tradability of game state directly on popular networks helps achieve a lot more composability and liquidity than would otherwise be possible. This standard helps define how to define NFTs in different chains without introducing centralization, lowered security or wait times for finality.
 
 ## Motivation
 
@@ -170,7 +170,7 @@ Instead of holding the data for the NFT in IPFS or other immutable storage, the 
 
 Key differences from ERC721:
 - `mint` can be called by anybody at anytime (infinite supply). If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
-- `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of decentralization, there is an additional `tokenURI` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
+- `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, there is an additional `tokenURI` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
 - The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. This function is callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
 
 ### Rationale App-layer
