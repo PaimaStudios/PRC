@@ -21,7 +21,7 @@ Instead of bridging NFTs, this standard allows minting NFTs on more popular chai
 Every PRC-3 compliant contract must implement the `IInverseProjectedNft` interface:
 
 ```solidity
-/// @dev A standard ERC721 that accepts calldata in the mint function for any initialization data needed in a Paima dApp.
+/// @dev A standard ERC721 that can be burned and has a special tokenURI function accepting a custom base URI.
 interface IInverseProjectedNft is IERC4906 {
     /// @dev Emitted when `baseExtension` is updated from `oldBaseExtension` to `newBaseExtension`.
     event SetBaseExtension(string oldBaseExtension, string newBaseExtension);
@@ -99,7 +99,8 @@ This case uses the following extension to the base interface
 
 ```solidity
 /// @dev A Paima Inverse Projection NFT where initialization is handled by the app-layer.
-interface IAppInverseProjectedNft is IInverseProjectedNft {
+/// A standard ERC721 that can be freely minted and stores an unique <minter, userTokenId> pair (used in tokenURI) when minted.
+interface IInverseAppProjectedNft is IInverseProjectedNft {
     /// @dev Emitted when the globally-enforced tokenId as well as the unique <minter, userTokenId> pair, and `initialData` provided in the `mint` function parameters.
     event Minted(uint256 indexed tokenId, address indexed minter, uint256 indexed userTokenId);
 
@@ -140,7 +141,8 @@ sequenceDiagram
 This case uses the following extension to the base interface
 
 ```solidity
-/// @dev A standard ERC721 that accepts calldata in the mint function for any initialization data needed in a Paima dApp.
+/// @dev A Paima Inverse Projection NFT where initialization is handled by the base-layer.
+/// A standard ERC721 that accepts calldata in the mint function for any initialization data needed in a Paima dApp.
 interface IInverseBaseProjectedNft is IInverseProjectedNft {
     /// @dev Emitted when the globally-enforced tokenId, and `initialData` provided in the `mint` function parameters.
     event Minted(uint256 indexed tokenId, string initialData);
