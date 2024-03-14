@@ -84,12 +84,12 @@ It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade a
       * `assetAmount` - amount of the game asset the seller is selling,
       * `price` - the price in native gas tokens of the base chain the seller is requesting,
       * `seller` - the address of the seller,
-      * `active` - signalizes if the sell order is active or not (meaning it has been cancelled or filled)
+      * `active` - signals whether or not the sell order is active (meaning it has been cancelled or filled)
     * Function to cancel a sell order.
     * Function to fill a sell order (in other words - buy). There is no "buy order" that persists, and rather the buy function directly transfers the value specified by price defined in the orders to the sellers. Buying marks all the sell orders it fulfills as inactive by changing the value of `active` flag to `false`.
-2. The game chain monitors this contract using CDEs and exposes an API to query its state.
+2. The game chain monitors this contract using Paima Primitives and exposes an API to query its state.
 
-That is to say, the contract on the base chain has no way of knowing if somebody who makes a sell order really has that amount of game assets in their account. Rather,
+The contract on the base chain has no way of knowing if somebody who makes a sell order really has that amount of game assets in their account. Rather,
 
 1. When somebody creates a sell order: The game chain sees it and checks if the user has enough of the asset in their account.
     * If yes, the amount is locked so they cannot spend it in-game (unless they cancel the order).
@@ -110,18 +110,18 @@ You can find all the contracts and interfaces in the Paima Engine codebase [here
 
 ### Avoiding many failed txs in this model
 
-The problem with this model is people will naturally all try to buy the order with the most favorable sell price. Chosen base chain should have fast blocks so collisions are not so likely if the UI updates fast enough, but if bots start trading good orders as soon as they appear it may cause a rush with many failed transactions.
+The problem with this model is people will naturally all try to buy the order with the most favorable sell price. The chosen base chain should have fast blocks so that collisions are not too likely if the UI updates fast enough, but if bots start trading good orders as soon as they appear it may cause a rush with many failed transactions.
 
 **Option 1) A L3 for all games**
 
-However, the key observation is that solving this concurrency issue does not need any knowledge of the game itself (it doesn't matter if orders are valid or not from the dApp perspective. It just assumes buyers are not making bad purchases).
+The key observation is that solving this concurrency issue does not need any knowledge of the game itself (it doesn't matter if orders are valid or not from the dApp perspective. It just assumes buyers are not making bad purchases).
 
-This is an important note because it means we could have a decentralized L3 on top of the base chain whose goal it is to match orders properly. Notably, there is a model that provides exactly what we want with no tx fee if concurrent actions are attempted like this: the UTxO model. That is to say, implementing this system on top of Cardano (Aiken) or Fuel is actually much easier than the account model of EVM. However, e.g. Arbitrum users of course cannot be using Cardano, so this would most likely require running a Fuel L3 for Arbitrum (or maybe some ZK-ified UTxO platform if one exists) where the validators are decided by the Paima ecosystem token.
+This is an important note because it means we could have a decentralized L3 on top of the base chain whose goal it is to match orders properly. Notably, there is a model that provides exactly what we want with no tx fee if concurrent actions are attempted like this: the UTxO model. That is to say, implementing this system on top of Cardano (Aiken) or Fuel is actually much easier than the account model of EVM. However, e.g. Arbitrum users of course cannot be using Cardano, so this would most likely require running a Fuel L3 for Arbitrum (or maybe some ZK-ified UTxO platform) where the validators are decided by the Paima ecosystem token.
 
-It falls short on a few key points:
+However, this falls short on a few key points:
 
 * It would require adding Fuel support to Paima Engine to properly monitor it.
-* It would require the Paima ecosystem to be released (not released yet).
+* It would require the Paima ecosystem token to be released (not released yet).
 * It means we lose some composability with other Arbitrum dApps (unless Fuel adds a wrapped smart contract system like Milkomeda).
 * Users may be hesitant to bridge to this L3 just to trade, so we would have to abstract this away from them (again, wrapped smart contracts may help in the optimistic case where there isn't a conflicting order so they can buy game assets right away).
 
