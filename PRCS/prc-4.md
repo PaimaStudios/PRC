@@ -129,6 +129,10 @@ However, this falls short on a few key points:
 
 This option is perhaps the easiest if there is only a single website for the DEX, because the website itself can keep track of orders people are attempting to make and thus avoid conflicting orders being placed. However, this can quickly fall apart if another website appears or if people start making trades by directly interacting with the contract.
 
+## Security Considerations
+
+**Honest RPC**: This standard relies on the default RPC being honestly operated. This is, however, not really a new trust assumption because this is a required assumption in nearly all dApps at the moment (including those like OpenSea where you have to trust them to be operating their website honestly). Just like somebody can run their own Ethereum fullnode to verify the data they see in an NFT marketplace, they can also sync fullnode for a Paima app and use their own RPC to fetch the state.
+
 ## Copyright
 
 Copyright and related rights waived via [CC0](../LICENSE.md).
