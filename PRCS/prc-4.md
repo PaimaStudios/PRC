@@ -125,12 +125,7 @@ However, this falls short on a few key points:
 * It means we lose some composability with other Arbitrum dApps (unless Fuel adds a wrapped smart contract system like Milkomeda).
 * Users may be hesitant to bridge to this L3 just to trade, so we would have to abstract this away from them (again, wrapped smart contracts may help in the optimistic case where there isn't a conflicting order so they can buy game assets right away).
 
-**Option 2) Stylus**
-
-This option assumes the base chain being Arbitrum.  
-Arbitrum recently introduced a new programming language called Stylus which is much faster & cheaper than EVM. Additionally, it's composable with EVM contracts so you do not run into the same composability tradeoffs as with L3s. However, it does not appear to be able to solve the concurrent issue entirely like the UTxO model. Rather, it might just make the gas cost of failing cheaper. Additionally, it's not live on mainnet at the moment.
-
-**Option 3) Frontend-driven concurrency management**
+**Option 2) Frontend-driven concurrency management**
 
 This option is perhaps the easiest if there is only a single website for the DEX, because the website itself can keep track of orders people are attempting to make and thus avoid conflicting orders being placed. However, this can quickly fall apart if another website appears or if people start making trades by directly interacting with the contract.
 
