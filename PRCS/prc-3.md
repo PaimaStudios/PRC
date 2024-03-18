@@ -69,7 +69,7 @@ There are two possible ways to define the token identifier with different tradeo
 
 #### 1) App Initiated
 
-In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the address they will mint with. The game then provides the user with a unique `userTokenId`, and the identifier will be `${address}/${userTokenId}.json`.
+In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the address they will mint with. The game then provides the user with a unique `userTokenId`, and the identifier will be `${address}/${userTokenId}.json` where `userTokenId` is 1-indexed.
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
 
@@ -112,7 +112,7 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
 }
 ```
 
-**Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. To make sure all variations of the game have the same value of `userTokenId`, the state transition can never fully be rejected.
+**Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. Failure to do this will result in different `userTokenId` for the same valid mint on 2 variants of the game (breaking interoperability).
 
 ```mermaid
 sequenceDiagram
@@ -120,15 +120,27 @@ sequenceDiagram
     participant Game Contract
     participant Game #35;1
     participant Game #35;2
-    User->>Game Contract: Initiate inverse projection
-    activate Game Contract
-    Game Contract->>Game #35;1: react to event
-    Game #35;1->>Game #35;1: invalid
-    Note right of Game #35;1: userTokenId +1
-    Game Contract->>Game #35;2: react to event
-    Game #35;2->>Game #35;2: valid
-    Note right of Game #35;2: userTokenId + 1
-    Note right of User: User sees userTokenId + 1<br />in both cases
+    alt variant-specific mint
+        User->>Game Contract: Initiate inverse projection
+        activate Game Contract
+        Game Contract->>Game #35;1: react to event
+        Game #35;1->>Game #35;1: invalid
+        Note right of Game #35;1: userTokenId = 1
+        Game Contract->>Game #35;2: react to event
+        Game #35;2->>Game #35;2: valid
+        Note right of Game #35;2: userTokenId + 1 = 2
+    end
+    alt both game mint
+        User->>Game Contract: Initiate inverse projection
+        activate Game Contract
+        Game Contract->>Game #35;1: react to event
+        Game #35;1->>Game #35;1: valid
+        Note right of Game #35;1: userTokenId + 1 = 2
+        Game Contract->>Game #35;2: react to event
+        Game #35;2->>Game #35;2: valid
+        Note right of Game #35;2: userTokenId + 1 = 3
+    end
+    Note right of User: User sees different userTokenId<br />despite mint being valid in both games
     deactivate Game Contract
 ```
 
@@ -138,7 +150,7 @@ There are 2 error-cases to handle:
 
 #### 2) Base Layer Initiated
 
-In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`).
+In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`) where `tokenId` is 1-indexed.
 
 ```mermaid
 sequenceDiagram
