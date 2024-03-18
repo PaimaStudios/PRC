@@ -112,8 +112,11 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
 }
 ```
 
-There are 1 error-case to handle:
-1. Querying a `tokenID` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
+**Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. To make sure all variations of the game have the same value of `userTokenId`, the state transition can never fully be rejected.
+
+There are 2 error-cases to handle:
+1. Querying a `userTokenId` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
+2. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
 
 #### 2) Base Layer Initiated
 
@@ -157,7 +160,7 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
 
 There are 2 error-cases to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
-2. Invalid `initialData` provided (the definition of invalid is app-specific)
+2. Invalid `initialData` provided (the definition of invalid is app-specific). See [this section](#invalid-mint-response)
 
 #### Invalid mint response
 
