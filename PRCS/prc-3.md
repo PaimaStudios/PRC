@@ -114,6 +114,24 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
 
 **Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. To make sure all variations of the game have the same value of `userTokenId`, the state transition can never fully be rejected.
 
+```mermaid
+sequenceDiagram
+    actor User
+    participant Game Contract
+    participant Game #35;1
+    participant Game #35;2
+    User->>Game Contract: Initiate inverse projection
+    activate Game Contract
+    Game Contract->>Game #35;1: react to event
+    Game #35;1->>Game #35;1: invalid
+    Note right of Game #35;1: userTokenId +1
+    Game Contract->>Game #35;2: react to event
+    Game #35;2->>Game #35;2: valid
+    Note right of Game #35;2: userTokenId + 1
+    Note right of User: User sees userTokenId + 1<br />in both cases
+    deactivate Game Contract
+```
+
 There are 2 error-cases to handle:
 1. Querying a `userTokenId` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
 2. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
