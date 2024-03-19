@@ -82,10 +82,10 @@ sequenceDiagram
     Seller->>Game: Request to mint NFT on <chainId, address>
     Game->>Seller: Unique userTokenId
     destroy Seller
-    Seller->>L1: Mint NFT to chainId <br> using address<br> passing in userTokenId
+    Seller->>L1: Mint NFT to chainId <br> using address<br>
     activate L1
     L1->>Game: Paima Primitive detects NFT creation
-    Game->>Game: check address, chainId and userTokenId match
+    Game->>Game: detects address, chainId and userTokenId match
     L1->>Game: tokenURI
     Game->>L1: Asset state in the game
     Buyer->>L1: Buys NFT on market
@@ -144,6 +144,8 @@ sequenceDiagram
     deactivate Game Contract
 ```
 
+Additionally, apps SHOULD ask the user to sign all transactions first before actually submitting them to the network. This avoid a situation where the user makes a transaction in the game layer, but then rejects (or never signs) the transaction in the base layer (this isn't an invalid state as they can always mint the tx in the base layer later to continue where they left off, but it's poor UX).
+
 There are 2 error-cases to handle:
 1. Querying a `userTokenId` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
 2. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
@@ -159,7 +161,7 @@ sequenceDiagram
     actor Seller
     participant Game
     destroy Seller
-    Seller->>L1: Mint NFT to chainId <br> using address<br> passing in userTokenId
+    Seller->>L1: Mint NFT to chainId <br> using address
     activate L1
     L1->>Game: Paima Primitive detects NFT creation
     L1->>Game: tokenURI
@@ -219,6 +221,7 @@ Downside:
 - Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
 - Requires extra logic in the Solidity smart contract to avoid double-mints (only 1 address can claim any minted data in the base layer and ensure the address can claim it only once) which increases tx fees.
 - ~175% the gas cost of the base-layer approach (130k ~ 175k gas)
+- Extra work to coordinate submission of transactions on 2 chains at the same time
 
 ### Rationale Base-layer
 
