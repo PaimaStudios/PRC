@@ -53,15 +53,16 @@ interface IInverseProjectedNft is IERC4906 {
 We recommend the following baseURI:
 
 ```bash
-https://${rpcBase}/inverseProjection/${purpose}/${chainIdentifier}/
+https://${rpcBase}/inverseProjection/%{standard}/${purpose}/${chainIdentifier}/
 ```
 
 Where
 - `rpcBase` is the URI for the RPC
+- `standard` is for the specific PRC used to define the the format of this endpoint (ex: `prc3`)
 - `purpose` is a app-dependent string to describe what the NFT is for (ex: `monsters`)
 - `chainIdentifier` is a unique ID for the chain following [caip-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md)
 
-An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/monsters/eip155:1/`
+An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/prc3/monsters/eip155:1/`
 
 ### Token Identifier
 
