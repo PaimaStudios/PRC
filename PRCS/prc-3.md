@@ -113,6 +113,8 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
 }
 ```
 
+##### Tracking invalid mints
+
 **Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. Failure to do this will result in different `userTokenId` for the same valid mint on 2 variants of the game (breaking interoperability).
 
 ```mermaid
@@ -145,11 +147,38 @@ sequenceDiagram
     deactivate Game Contract
 ```
 
+##### Avoiding partial initialization
+
 Additionally, apps SHOULD ask the user to sign all transactions first before actually submitting them to the network. This avoid a situation where the user makes a transaction in the game layer, but then rejects (or never signs) the transaction in the base layer (this isn't an invalid state as they can always mint the tx in the base layer later to continue where they left off, but it's poor UX).
+
+In cases where this is not possible, the game CAN consider burn events for NFTs that were never initiated on the app layer as already handled, but care needs to be taken for burn events that are out of sync
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant L1
+    participant Game
+
+    User->>L1: Mint userTokenId 1
+    activate L1
+    L1->>Game: Paima Primitive detects NFT 1 creation
+    deactivate L1
+    User->>L1: Mint userTokenId 2
+    activate L1
+    L1->>Game: Paima Primitive detects NFT 2 creation
+    deactivate L1
+    User->>L1: Burn userTokenId 2
+    activate L1
+    L1->>Game: Paima Primitive detects NFT 2 burn
+    Note over L1,Game: Note NFT #35;1 was never burn or initiated
+    deactivate L1
+```
+
+##### Endpoint error cases
 
 There are 2 error-cases to handle:
 1. Querying a `userTokenId` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
-2. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
+1. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
 
 #### 2) Base Layer Initiated
 
@@ -191,6 +220,8 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
 }
 ```
 
+##### Endpoint error cases
+
 There are 2 error-cases to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
 2. Invalid `initialData` provided (the definition of invalid is app-specific). See [this section](#invalid-mint-response)
@@ -220,9 +251,9 @@ Upside:
 
 Downside:
 - Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
+- Extra work to coordinate submission of transactions on 2 chains at the same time
 - Requires extra logic in the Solidity smart contract to avoid double-mints (only 1 address can claim any minted data in the base layer and ensure the address can claim it only once) which increases tx fees.
 - ~175% the gas cost of the base-layer approach (130k ~ 175k gas)
-- Extra work to coordinate submission of transactions on 2 chains at the same time
 
 ### Rationale Base-layer
 
