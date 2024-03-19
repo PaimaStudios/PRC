@@ -59,7 +59,7 @@ interface IOrderbookDex is IERC165 {
     /// An order whose `cancelled` parameter has value `true` MUST NOT be filled.
     /// MUST change the `assetAmount` parameter for the specified order according to how much of it was filled.
     /// MUST emit `OrderFilled` event for each order accordingly.
-    function fillOrdersExactEth(uint256 minimumAsset, address[] memory sellers, uint256[] memory orderIds)
+    function fillOrdersExactEth(uint256 minimumAsset, address payable[] memory sellers, uint256[] memory orderIds)
         external
         payable;
 
@@ -71,7 +71,7 @@ interface IOrderbookDex is IERC165 {
     /// MUST change the `assetAmount` parameter for the specified order according to how much of it was filled.
     /// MUST emit `OrderFilled` event for each order accordingly.
     /// If msg.value is more than the sum of orders' prices, it MUST refund the difference back to msg.sender.
-    function fillOrdersExactAsset(uint256 assetAmount, address[] memory sellers, uint256[] memory orderIds)
+    function fillOrdersExactAsset(uint256 assetAmount, address payable[] memory sellers, uint256[] memory orderIds)
         external
         payable;
 
