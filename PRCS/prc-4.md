@@ -40,8 +40,8 @@ interface IOrderbookDex is IERC165 {
     );
     event OrderCancelled(address indexed seller, uint256 indexed orderId);
 
-    /// @notice Returns the current index of orders (index that a new sell order will be mapped to).
-    function getOrdersIndex() external view returns (uint256);
+    /// @notice Returns the current sellers orderId (index that a new sell order will be mapped to).
+    function getSellersOrderId() external view returns (uint256);
 
     /// @notice Returns the Order struct information about an order identified by the combination `<seller, orderId>`.
     function getOrder(address seller, uint256 orderId) external view returns (Order memory);
