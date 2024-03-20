@@ -53,7 +53,7 @@ interface IInverseProjectedNft is IERC4906 {
 We recommend the following baseURI:
 
 ```bash
-https://${rpcBase}/inverseProjection/%{standard}/${purpose}/${chainIdentifier}/
+https://${rpcBase}/inverseProjection/${standard}/${purpose}/${chainIdentifier}/
 ```
 
 Where
