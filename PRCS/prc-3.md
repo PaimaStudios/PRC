@@ -50,7 +50,7 @@ interface IInverseProjectedNft is IERC4906 {
 }
 ```
 
-We recommend the following baseURI:
+With the following baseURI:
 
 ```bash
 https://${rpcBase}/inverseProjection/${standard}/${purpose}/${chainIdentifier}/
@@ -109,42 +109,20 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
     /// Increases the `totalSupply` and `currentTokenId`.
     /// Reverts if `_to` is a zero address or if it refers to smart contract but does not implement IERC721Receiver-onERC721Received.
     /// Emits the `Minted` event.
+    /// @param _to where to send the NFT to
+    /// @param _verificationData any additional data to verify the validity of the mint
+    function mint(address _to, bytes memory _verificationData) external returns (uint256);
+
+    /// @dev This works identically to the other function with an extra data parameter,
+    ///      except this function just sets data to "".
     function mint(address _to) external returns (uint256);
+
+    /// @notice Returns the last nonce used (or 0 if the user has never minted)
+    /// @dev Useful if you need to either needs to
+    ///      1. Check if the nonce matches the expected value, or if more NFTs need to be minted
+    ///      2. Use a nonce algorithm where the next nonce depends on the current nonce
+    function currentNonce(address seller) external view returns (uint256);
 }
-```
-
-##### Tracking invalid mints
-
-**Note**: the state transition to initiate the inverse projection should *never* fail. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. Failure to do this will result in different `userTokenId` for the same valid mint on 2 variants of the game (breaking interoperability).
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Game Contract
-    participant Game #35;1
-    participant Game #35;2
-    alt variant-specific mint
-        User->>Game Contract: Initiate inverse projection
-        activate Game Contract
-        Game Contract->>Game #35;1: react to event
-        Game #35;1->>Game #35;1: invalid
-        Note right of Game #35;1: userTokenId = 1
-        Game Contract->>Game #35;2: react to event
-        Game #35;2->>Game #35;2: valid
-        Note right of Game #35;2: userTokenId + 1 = 2
-    end
-    alt both game mint
-        User->>Game Contract: Initiate inverse projection
-        activate Game Contract
-        Game Contract->>Game #35;1: react to event
-        Game #35;1->>Game #35;1: valid
-        Note right of Game #35;1: userTokenId + 1 = 2
-        Game Contract->>Game #35;2: react to event
-        Game #35;2->>Game #35;2: valid
-        Note right of Game #35;2: userTokenId + 1 = 3
-    end
-    Note right of User: User sees different userTokenId<br />despite mint being valid in both games
-    deactivate Game Contract
 ```
 
 ##### Avoiding partial initialization
@@ -226,19 +204,66 @@ There are 2 error-cases to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
 2. Invalid `initialData` provided (the definition of invalid is app-specific). See [this section](#invalid-mint-response)
 
-#### Invalid mint response
+### Mint validity
 
-The metadata returned for any invalid mint should be either:
+Background: collection offers are a common feature in NFT marketplace allowing users to place a price on any asset in the collection instead of having to pick an individual NFT. Similarly, another feature known as "sweeping the floor" buys all NFTs in a collection starting with the lowest value.
 
-1. Be a 404 permanently (easiest if your app does not store failed transactions)
-2. Metadata that clearly (image, name, etc.) states the NFT is invalid and the only attribute is `attributes: [{ "value": "invalid" }]`.
+These two features need extra work to work for PRC-3 assets. This is because some mints may be "invalid", and we want to avoid users buying / sweeping invalid assets without realizing. Invalid assets should not be blocked entirely (because they may be valid for a different variation of the game), but users should be able to place a buy/sweep order according to the validity of a specific version of the game.
+
+To enable these features to work, all NFTs in the collection SHOULD contain the following attribute:
+1. `attributes: [{ "trait_type": "validity", "value": "valid" }]` for valid mints
+2. `attributes: [{ "trait_type": "validity", "value": "invalid" }]` for invalid mints
+
+This will help users make trait-based collection offers for the NFTs.
+
+Note that there are actually 4-cases for the state of NFT attributes:
+1. An HTTP 404 error (because the RPC used is down or because the mint hasn't been initialized yet)
+1. An HTTP 404 error (because the mint is considered invalid. This may happen if the game node does not store failed transactions)
+1. A valid response (`value: "valid"`)
+1. An invalid response (`value: "invalid"`)
+
+#### Tracking invalid mints
+
+**Note**: regardless of which layer does the initialization, the state transition to process the inverse projection should *never* fail for any reason other than signature mismatch. If the data received to initiate the projection is invalid, the game should simply mark the data itself as invalid and still increment the user's value for `userTokenId`. This is because even though this inverse projection may be invalid for *this version* of the game, there may be another version of the game run by players where this state transition *is* valid. Failure to do this will result in different `userTokenId` for the same valid mint on 2 variants of the game (breaking interoperability).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Game Contract
+    participant Game #35;1
+    participant Game #35;2
+    alt variant-specific mint
+        User->>Game Contract: Initiate inverse projection
+        activate Game Contract
+        Game Contract->>Game #35;1: react to event
+        Game #35;1->>Game #35;1: invalid
+        Note right of Game #35;1: userTokenId = 1
+        Game Contract->>Game #35;2: react to event
+        Game #35;2->>Game #35;2: valid
+        Note right of Game #35;2: userTokenId + 1 = 2
+    end
+    alt both game mint
+        User->>Game Contract: Initiate inverse projection
+        activate Game Contract
+        Game Contract->>Game #35;1: react to event
+        Game #35;1->>Game #35;1: valid
+        Note right of Game #35;1: userTokenId + 1 = 2
+        Game Contract->>Game #35;2: react to event
+        Game #35;2->>Game #35;2: valid
+        Note right of Game #35;2: userTokenId + 1 = 3
+    end
+    Note right of User: User sees different userTokenId<br />despite mint being valid in both games
+    deactivate Game Contract
+```
 
 ## Rationale
 
 Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the RPC call that needs to be made to the game node to fetch the data this NFT encodes. Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism).
 
 Key differences from ERC721:
-- `mint` can be called by anybody at anytime (infinite supply). If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
+- `mint` can be called by anybody at anytime (infinite supply).
+    - If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
+    - If the projection is initiated by the app layer, it can pass optionally pass in `_verificationData` if the app layer state is verifiable.
 - `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, there is an additional `tokenURI` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
 - The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. This function is callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
 
@@ -248,6 +273,7 @@ Having `userTokenId` be a deterministic increasing value not only avoids double-
 
 Upside:
 - No need to wait for finality or bridge latency in the base layer for the game to detect the Paima Primitive and update the state machine to reflect the mint.
+- Supports cases when the game state is verifiable (ex: if the game is a ZK rollup whose state is posted to the same base layer you can verify if the mint is valid according to the game state)
 
 Downside:
 - Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
