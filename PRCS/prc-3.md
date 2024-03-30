@@ -273,7 +273,7 @@ sequenceDiagram
 
 ## Rationale
 
-Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the an RPC call that needs to be made to the game node to fetch the data this NFT encodes (or contract call).
+Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the an RPC call that needs to be made to the game node to fetch the data this NFT encodes (or contract call to be made to where to get that data).
 
 Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism). To avoid contracts deployed on one chain pretending to be NFTs from another, the Solidity contract itself should enforce the `chainIdentifier` (as opposed to being part of the baseURI).
 
