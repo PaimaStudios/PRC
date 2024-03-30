@@ -21,8 +21,16 @@ Instead of bridging NFTs, this standard allows minting NFTs on more popular chai
 Every PRC-3 compliant contract must implement the `IInverseProjectedNft` interface:
 
 ```solidity
+/// @dev An interface exposing the `tokenURI` function from IERC721Metadata.
+interface ITokenUri {
+    /**
+     * @dev Returns the Uniform Resource Identifier (URI) for `tokenId` token.
+     */
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+}
+
 /// @dev A standard ERC721 that can be burned and has a special tokenURI function accepting a custom base URI.
-interface IInverseProjectedNft is IERC4906 {
+interface IInverseProjectedNft is IERC4906, IERC721Metadata {
     /// @dev Emitted when `baseExtension` is updated from `oldBaseExtension` to `newBaseExtension`.
     event SetBaseExtension(string oldBaseExtension, string newBaseExtension);
 
@@ -47,30 +55,37 @@ interface IInverseProjectedNft is IERC4906 {
         uint256 tokenId,
         string memory customBaseUri
     ) external view returns (string memory);
+
+    /// @dev Returns the token URI of specified `tokenId` using a call to contract implementing `ITokenUri`.
+    function tokenURI(
+        uint256 tokenId,
+        ITokenUri customUriInterface
+    ) external view returns (string memory);
 }
 ```
 
 With the following baseURI:
 
 ```bash
-https://${rpcBase}/inverseProjection/${standard}/${purpose}/${chainIdentifier}/
+https://${rpcBase}/inverseProjection/${standard}/${purpose}/
 ```
 
 Where
 - `rpcBase` is the URI for the RPC
 - `standard` is for the specific PRC used to define the the format of this endpoint (ex: `prc3`)
 - `purpose` is a app-dependent string to describe what the NFT is for (ex: `monsters`)
-- `chainIdentifier` is a unique ID for the chain following [caip-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md)
 
-An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/prc3/monsters/eip155:1/`
+An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/prc3/monsters/`
 
 ### Token Identifier
+
+Token identifiers MUST start with a `chainIdentifier`: a unique ID for the chain following [caip-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md). For example, `eip155:1` for Ethereum Mainnet (resulting in `https://rpc.mygame.com/inverseProjection/prc3/monsters/eip155:1/` for our previous example).
 
 There are two possible ways to define the token identifier with different tradeoffs.
 
 #### 1) App Initiated
 
-In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the address they will mint with. The game then provides the user with a unique `userTokenId`, and the identifier will be `${address}/${userTokenId}.json` where `userTokenId` is 1-indexed.
+In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the address they will mint with. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}.json` where `userTokenId` is 1-indexed.
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
 
@@ -160,7 +175,7 @@ There are 2 error-cases to handle:
 
 #### 2) Base Layer Initiated
 
-In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`) where `tokenId` is 1-indexed.
+In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${chainIdentifier}/${tokenId}.json`) where `tokenId` is 1-indexed.
 
 ```mermaid
 sequenceDiagram
@@ -258,13 +273,17 @@ sequenceDiagram
 
 ## Rationale
 
-Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the RPC call that needs to be made to the game node to fetch the data this NFT encodes. Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism).
+Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the an RPC call that needs to be made to the game node to fetch the data this NFT encodes (or contract call to be made to where to get that data).
+
+Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism). To avoid contracts deployed on one chain pretending to be NFTs from another, the Solidity contract itself should enforce the `chainIdentifier` (as opposed to being part of the baseURI).
 
 Key differences from ERC721:
 - `mint` can be called by anybody at anytime (infinite supply).
     - If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
     - If the projection is initiated by the app layer, it can pass optionally pass in `_verificationData` if the app layer state is verifiable.
-- `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, there is an additional `tokenURI` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
+- `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, two variants of the `tokenURI` function are provided:
+    1. One that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish
+    2. One that accepts any contracts that implements a `ITokenUri` interface in-case the data comes from an onchain source.
 - The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. This function is callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
 
 ### Rationale App-layer
@@ -274,6 +293,7 @@ Having `userTokenId` be a deterministic increasing value not only avoids double-
 Upside:
 - No need to wait for finality or bridge latency in the base layer for the game to detect the Paima Primitive and update the state machine to reflect the mint.
 - Supports cases when the game state is verifiable (ex: if the game is a ZK rollup whose state is posted to the same base layer you can verify if the mint is valid according to the game state)
+- Easier to batch mint
 
 Downside:
 - Requires a transaction on the layer where the app is deployed (although usually this is a place where tx fees are cheap) compared to when initiated on the base-layer which does not require an explicit app-layer transaction.
