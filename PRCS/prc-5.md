@@ -50,6 +50,9 @@ interface IInverseProjected1155 is IERC1155MetadataURI, IERC4906Agnostic {
 
     /// @dev Returns the token URI of specified `id` using a custom base URI.
     function uri(uint256 id, string memory customBaseUri) external view returns (string memory);
+
+    /// @dev Returns the token URI of specified `id` using a call to contract implementing `IUri`.
+    function uri(uint256 id, IUri customUriInterface) external view returns (string memory);
 }
 
 /// @title Agnostic Metadata Update Extension
