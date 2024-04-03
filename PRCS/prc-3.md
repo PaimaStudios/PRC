@@ -142,7 +142,7 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
 
 ##### Avoiding partial initialization
 
-Additionally, apps SHOULD ask the user to sign all transactions first before actually submitting them to the network. This avoid a situation where the user makes a transaction in the game layer, but then rejects (or never signs) the transaction in the base layer (this isn't an invalid state as they can always mint the tx in the base layer later to continue where they left off, but it's poor UX).
+Additionally, apps SHOULD ask the user to sign all transactions first before actually submitting them to the network. This avoids a situation where the user makes a transaction in the game layer, but then rejects (or never signs) the transaction in the base layer (this isn't an invalid state as they can always mint the tx in the base layer later to continue where they left off, but it's poor UX).
 
 In cases where this is not possible, the game CAN consider burn events for NFTs that were never initiated on the app layer as already handled, but care needs to be taken for burn events that are out of sync
 
@@ -171,7 +171,7 @@ sequenceDiagram
 
 There are 2 error-cases to handle:
 1. Querying a `userTokenId` that has not yet been seen by the game node. This should not happen under normal use, but may happen if a user mints more times on the base layer without making any equivalent transaction in the app layer. This should return a `404 error` (to avoid NFT marketplaces caching dummy data)
-1. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#invalid-mint-response)
+1. Querying a `userTokenId` that is marked as invalid for this variation of the game. See [this section](#mint-validity)
 
 #### 2) Base Layer Initiated
 
@@ -217,11 +217,11 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
 
 There are 2 error-cases to handle:
 1. Querying a `tokenID` that has not yet been seen by the game node. This will happen because there is always a delay between something happening on the base layer and the Paima node detecting it. This should return a `404 error` instead of dummy data (to avoid NFT marketplaces caching dummy data)
-2. Invalid `initialData` provided (the definition of invalid is app-specific). See [this section](#invalid-mint-response)
+2. Invalid `initialData` provided (the definition of invalid is app-specific). See [this section](#mint-validity)
 
 ### Mint validity
 
-Background: collection offers are a common feature in NFT marketplace allowing users to place a price on any asset in the collection instead of having to pick an individual NFT. Similarly, another feature known as "sweeping the floor" buys all NFTs in a collection starting with the lowest value.
+Background: collection offers are a common feature in NFT marketplaces allowing users to place a price on any asset in the collection instead of having to pick an individual NFT. Similarly, another feature known as "sweeping the floor" buys all NFTs in a collection starting with the lowest value.
 
 These two features need extra work to work for PRC-3 assets. This is because some mints may be "invalid", and we want to avoid users buying / sweeping invalid assets without realizing. Invalid assets should not be blocked entirely (because they may be valid for a different variation of the game), but users should be able to place a buy/sweep order according to the validity of a specific version of the game.
 
@@ -273,7 +273,7 @@ sequenceDiagram
 
 ## Rationale
 
-Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the an RPC call that needs to be made to the game node to fetch the data this NFT encodes (or contract call to be made to where to get that data).
+Instead of holding the data for the NFT in IPFS or other immutable storage, the NFT instead corresponds to the RPC call that needs to be made to the game node to fetch the data this NFT encodes (or contract call to be made to where to get that data).
 
 Note that for this standard to be secure, you cannot mint these NFTs on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism). To avoid contracts deployed on one chain pretending to be NFTs from another, the Solidity contract itself should enforce the `chainIdentifier` (as opposed to being part of the baseURI).
 
@@ -284,7 +284,7 @@ Key differences from ERC721:
 - `tokenURI` from `IERC721` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, two variants of the `tokenURI` function are provided:
     1. One that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish
     2. One that accepts any contracts that implements a `ITokenUri` interface in-case the data comes from an onchain source.
-- The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. This function is callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
+- The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. These functions are callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data.
 
 ### Rationale App-layer
 
