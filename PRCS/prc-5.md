@@ -23,6 +23,17 @@ Instead of bridging tokens, this standard allows minting tokens on more popular 
 Every PRC-5 compliant contract must implement the `IInverseProjected1155` interface:
 
 ```solidity
+/// @dev An interface exposing the `uri` function from IERC1155MetadataURI.
+interface IUri {
+    /**
+     * @dev Returns the URI for token type `id`.
+     *
+     * If the `\{id\}` substring is present in the URI, it must be replaced by
+     * clients with the actual token type ID.
+     */
+    function uri(uint256 id) external view returns (string memory);
+}
+
 /// @dev A standard ERC1155 that can be burned and has a special uri function accepting a custom base URI.
 interface IInverseProjected1155 is IERC1155MetadataURI, IERC4906Agnostic {
     /// @dev Emitted when `baseExtension` is updated from `oldBaseExtension` to `newBaseExtension`.
@@ -72,24 +83,25 @@ interface IERC4906Agnostic {
 With the following baseURI:
 
 ```bash
-https://${rpcBase}/inverseProjection/${standard}/${purpose}/${chainIdentifier}/
+https://${rpcBase}/inverseProjection/${standard}/${purpose}/
 ```
 
 Where
 - `rpcBase` is the URI for the RPC
 - `standard` is for the specific PRC used to define the the format of this endpoint (ex: `prc5`)
 - `purpose` is a app-dependent string to describe what the NFT is for (ex: `gold`)
-- `chainIdentifier` is a unique ID for the chain following [caip-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md)
 
-An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/prc5/gold/eip155:1/`
+An example of such a `baseURI` is `https://rpc.mygame.com/inverseProjection/prc5/gold/`
 
 ### Token Identifier
+
+Token identifiers MUST start with a `chainIdentifier`: a unique ID for the chain following [caip-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md). For example, `eip155:1` for Ethereum Mainnet (resulting in `https://rpc.mygame.com/inverseProjection/prc5/gold/eip155:1/` for our previous example).
 
 There are two possible ways to define the token identifier with different tradeoffs.
 
 #### 1) App Initiated
 
-In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${address}/${userTokenId}` where `userTokenId` is 1-indexed.  
+In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}` where `userTokenId` is 1-indexed.  
 The game must also note down the `initialAmount` of the locked assets, so that it can later compare this number with the `amount` of tokens the user mints on the base chain. In the event the user mints **less** tokens than is the number of assets that were locked, the game MUST react to this event by unlocking the difference back to the user.
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
@@ -205,7 +217,7 @@ There are 2 error-cases to handle:
 
 #### 2) Base Layer Initiated
 
-In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${tokenId}.json`) where `tokenId` is 1-indexed.
+In this case, the user first initiates the projection on the base layer by simply minting the NFT specifying data as needed in the `initialData`. The `tokenId` from the smart contract will act as the `identifier` (`${chainIdentifier}/${tokenId}.json`) where `tokenId` is 1-indexed.
 
 ```mermaid
 sequenceDiagram
@@ -239,7 +251,10 @@ interface IInverseBaseProjected1155 is IInverseProjected1155 {
     /// Increases the `currentTokenId`.
     /// Reverts if transaction sender is a smart contract that does not implement IERC1155Receiver-onERC1155Received.
     /// Emits the `Minted` event.
-    /// Returns the id of the minted token.
+    /// @param value the amount of tokens to mint.
+    /// @param data additional data to pass to the receiver contract.
+    /// @param initialData data that is emitted in the `Minted` event.
+    /// @return id of the minted token.
     function mint(
         uint256 value,
         bytes memory data,
@@ -310,11 +325,15 @@ sequenceDiagram
 
 Instead of holding the data for the tokens in IPFS or other immutable storage, the token instead corresponds to the RPC call that needs to be made to the game node to fetch the data this token encodes. Note that for this standard to be secure, you cannot mint these tokens on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism).
 
+Note that for this standard to be secure, you cannot mint these tokens on arbitrary chains - rather, it has to be on a chain that the game is either actively monitoring (or occasionally receives updates about through a bridge or other mechanism). To avoid contracts deployed on one chain pretending to be tokens from another, the Solidity contract itself should enforce the `chainIdentifier` (as opposed to being part of the baseURI).
+
 Key differences from ERC1155:
 - `mint` can be called by anybody at anytime (infinite supply).
     - If the projection is initiated by the base layer, it also needs to contain the `initialData` to specify what is being projected.
     - If the projection is initiated by the app layer, it can pass optionally pass in `_verificationData` if the app layer state is verifiable.
-- `uri` from `IERC1155` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, there is an additional `uri` function that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish.
+- `uri` from `IERC1155` will lookup from default RPC for the game to ensure data is properly visible from standard marketplaces like OpenSea. To avoid this being a point of centralization, two variants of the `tokenURI` function are provided:
+    1. One that accepts a `customBaseUri` for marketplaces / users to provide their own RPC if they wish
+    2. One that accepts any contracts that implements a `IUri` interface in-case the data comes from an onchain source.
 - The contract uses [ERC-4906](https://eips.ethereum.org/EIPS/eip-4906) to force marketplaces to invalidate their cache. These functions are callable by anybody (not just the admin) so that if ever the game updates with new features (either user-initiated or by the original authors of the game), marketplaces will properly refetch the data. OpenZeppelin's implementation of the `IERC4906` interface extends the `IERC721` interface, which is the reason we use a custom `IERC4906Agnostic` interface that does not do that.
 
 ### Rationale App-layer
