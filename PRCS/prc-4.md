@@ -21,6 +21,8 @@ Instead of bridging, this standard allows trading the game assets on base chain 
 Every PRC-4 compliant contract must implement the `IOrderbookDex` interface and events:
 
 ```solidity
+import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+
 /// @notice Facilitates base-chain trading of an asset that is living on a different app-chain.
 /// @dev Orders are identified by a unique incremental `orderId`.
 interface IOrderbookDex is IERC1155Receiver {
@@ -146,12 +148,7 @@ It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade a
      - `fillOrdersExactEth` - consecutively fills the array of specified orders until all provided ETH is spent and a specified minimum amount of asset has been achieved. Example: You want to buy as much asset as possible for 1 ETH.
      - `fillOrdersExactAsset` - consecutively fills the array of specified orders until specified exact amount of asset has been achieved, and returns the excess ETH back to the sender. Example: You want to buy 1000 units of asset as cheaply as possible.
 
-The contract on the base chain has no way of knowing if somebody who makes a sell order really has that amount of game assets in their account. Rather,
-
-1. When somebody creates a sell order for a specific asset ID on the game chain, its validity can be checked via the API in the token's `uri` function.
-2. When somebody wants to buy, they specify the orders they wish to purchase by their unique ID.
-   - The responsibility of querying the API of game chain to check the validity of the sell order is left up to the front-end providers, as well as the presentation of the possible sell orders.
-3. The user then makes a smart contract call that fulfills the orders and transfers the right amounts of assets to the corresponding accounts in a single transaction (atomic).
+The DEX contract on the base chain only facilitates the trading (transferring) of existing Inverse Projected ERC1155 assets, it does not make any assurances about validity of such assets. That aspect is handled by the feature set of the Inverse Projected ERC1155 standard itself. The responsibility of querying the API of game chain to check the validity of the sell order is left up to the front-end providers, as well as the presentation of the possible sell orders.
 
 ## Reference Implementation
 
