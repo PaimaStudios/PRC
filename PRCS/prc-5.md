@@ -101,7 +101,7 @@ There are two possible ways to define the token identifier with different tradeo
 
 #### 1) App Initiated
 
-In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}` where `userTokenId` is 1-indexed.  
+In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}.json` where `userTokenId` is 1-indexed.  
 The game must also note down the `initialAmount` of the locked assets, so that it can later compare this number with the `amount` of tokens the user mints on the base chain. In the event the user mints **less** tokens than is the number of assets that were locked, the game MUST react to this event by unlocking the difference back to the user.
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
