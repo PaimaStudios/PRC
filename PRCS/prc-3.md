@@ -117,7 +117,7 @@ This case uses the following extension to the base interface
 /// @dev A Paima Inverse Projection NFT where initialization is handled by the app-layer.
 /// A standard ERC721 that can be freely minted and stores an unique <minter, userTokenId> pair (used in tokenURI) when minted.
 interface IInverseAppProjectedNft is IInverseProjectedNft {
-    /// @dev Emitted when the globally-enforced tokenId in combination with an unique <minter, userTokenId> pair is minted.
+    /// @dev Emitted when the globally-enforced tokenId in combination with an unique `<minter, userTokenId>` pair is minted.
     event Minted(uint256 indexed tokenId, address indexed minter, uint256 indexed userTokenId);
 
     /// @dev Mints a new token to address `_to`
@@ -126,10 +126,18 @@ interface IInverseAppProjectedNft is IInverseProjectedNft {
     /// Emits the `Minted` event.
     /// @param _to where to send the NFT to
     /// @param _verificationData any additional data to verify the validity of the mint
+    /// @param _data any additional data to pass to the receiver contract
+    /// @return id of the minted token
+    function mint(
+        address _to,
+        bytes memory _verificationData,
+        bytes memory _data
+    ) external returns (uint256);
+
+    /// @dev Shorthand function that calls the `mint` function with empty `_data`.
     function mint(address _to, bytes memory _verificationData) external returns (uint256);
 
-    /// @dev This works identically to the other function with an extra data parameter,
-    ///      except this function just sets data to "".
+    /// @dev Shorthand function that calls the `mint` function with empty `_verificationData` and empty `_data`.
     function mint(address _to) external returns (uint256);
 
     /// @notice Returns the last nonce used (or 0 if the user has never minted)
@@ -209,6 +217,17 @@ interface IInverseBaseProjectedNft is IInverseProjectedNft {
     /// Increases the `totalSupply` and `currentTokenId`.
     /// Reverts if `_to` is a zero address or if it refers to smart contract but does not implement IERC721Receiver-onERC721Received.
     /// Emits the `Minted` event.
+    /// @param _to where to send the NFT to
+    /// @param initialData data that is emitted in the `Minted` event
+    /// @param data any additional data to pass to the receiver contract
+    /// @return id of the minted token
+    function mint(
+        address _to,
+        string calldata initialData,
+        bytes memory data
+    ) external returns (uint256);
+
+    /// @dev Shorthand function that calls the `mint` function with empty `data`.
     function mint(address _to, string calldata initialData) external returns (uint256);
 }
 ```
