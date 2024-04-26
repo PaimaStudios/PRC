@@ -55,15 +55,22 @@ interface Player = {
 
 ## Specification
 
-### Get all available achievements:  
+### Get All Available Achievements
 `{BASE_URL}/achievements/public/list`
+
+Optional subset of achievements by category
+`{BASE_URL}/achievements/public/list?category=Silver`
+
+Optional subset of active achievements
+`{BASE_URL}/achievements/public/list?isActive=true`
+
 ```
 interface AchievementPublicList extends Game, Validity {
     achievements: {
       name: string;                     // Unique Achievement String
       score?: number;                   // Optional: Relative Value of the Achievement
       category?: string;                // Optional: 'Gold' | 'Diamond' | 'Beginner' | 'Advanced' | 'Vendor'
-      percentCompleted?: number         // Percent of players that have unlocked achievement 
+      percentCompleted?: number         // Percent of players that have unlocked the achievement 
       isActive: boolean                 // If achievement can be unlocked at the time. 
       displayName: string;              // Achievement Display Name
       description: string               // Achievement Description
@@ -84,7 +91,7 @@ Optional subset of achievements by name
 `{BASE_URL}/achievements/wallet/:wallet?name=start_game,end_game,defeat_red_dragon`  
 ```
 interface PlayerAchievements extends Validity, Player {
-  completed: number;                    // Total number of completed achievements for game
+  completed: number;                    // Total number of completed achievements for the game
   achievements: {
     name: string;                       // Unique Achievement String
     completed: boolean;                 // Is Achievement completed
