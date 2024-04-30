@@ -41,6 +41,7 @@ interface Game = {
 ```
 
 Data Validity
+For cross-game on-chain interoperability, this field allows the requester to confirm when the data is valid, and which is the reference blockchain.
 ```
 interface Validity = {
   block: number;         // Data Block height (0 always valid)
