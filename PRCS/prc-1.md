@@ -98,14 +98,10 @@ interface AchievementPublicList extends Game, Validity {
 * wallet: Wallet address
 
 `{BASE_URL}/achievements/erc/:erc/:cde/:token_id`  
-`{BASE_URL}/achievements/erc/:erc/:cde/:token_id/:wallet_id`  
-
-e.g., /achievements/erc/erc1155/0/10/
-or /achievements/erc/erc721/1/20/0x1234
+e.g., /achievements/erc/erc721/cards/20  
 * erc: Any supported ERC standard by the game, such as erc721, erc6551, or erc1155.
-* cde: Chain Data Extension identifier, might be used by the game to track identify the contract
+* cde: Chain Data Extension name, might be used by the game to track and identify the contract
 * token_id: Unique token id defined by the ERC standard
-* wallet: Optional Query param for ERCs that supports pairs as (token, wallet) as erc1155 or filter by ownership. 
 
 Optional subset of achievements by name  
 `{BASE_URL}/achievements/wallet/:wallet?name=start_game,end_game,defeat_red_dragon`  
