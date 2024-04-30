@@ -129,4 +129,5 @@ interface PlayerAchievements extends Validity, Player {
 
 
 ### Copyright
+Copyright and related rights waived via [CC0](https://github.com/PaimaStudios/PRC/blob/main/LICENSE.md).
 
