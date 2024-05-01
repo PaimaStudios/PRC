@@ -32,8 +32,8 @@ This achievement system can be used by the target game itself for unlocking func
 ### Response Interfaces
 
 General Game Info
-```
-interface Game = {
+```js
+interface Game {
   id: string             // Game ID
   name?: string          // Optional Game Name
   version?: string       // Optional Game Version
@@ -42,8 +42,8 @@ interface Game = {
 
 Data Validity
 For cross-game on-chain interoperability, this field allows the requester to confirm when the data is valid, and which is the reference blockchain.
-```
-interface Validity = {
+```js
+interface Validity {
   block: number;         // Data Block height (0 always valid)
   caip2: string;         // CAIP-2 blockchain identifier 
   time: string;          // Optional Date ISO8601 YYYY-MM-DDTHH:mm:ss.sssZ
@@ -51,8 +51,8 @@ interface Validity = {
 ```
 
 Player Info
-``` 
-interface Player = {     
+```js
+interface Player {     
   wallet:                // e.g., addr1234... or 0x1234..,
   walletType?: 'cardano' | 'evm' | 'polkadot' | 'algorand' | string  // (Optional) Wallet-type
   userId?: string;       // (Optional) User ID for a specific player account.
@@ -74,7 +74,7 @@ Optional: Subset of active achievements
 `{BASE_URL}/achievements/public/list?isActive=true`
 
 
-```
+```js
 interface AchievementPublicList extends Game, Validity {
     achievements: {
       name: string;                     // Unique Achievement String
@@ -106,7 +106,7 @@ e.g., /achievements/erc/erc721/cards/20
 Optional subset of achievements by name  
 `{BASE_URL}/achievements/wallet/:wallet?name=start_game,end_game,defeat_red_dragon`  
 
-```
+```js
 interface PlayerAchievements extends Validity, Player {
   completed: number;                    // Total number of completed achievements for the game
   achievements: {
