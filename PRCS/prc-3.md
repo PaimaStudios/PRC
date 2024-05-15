@@ -231,11 +231,10 @@ To enable these features to work, all NFTs in the collection SHOULD contain the 
 
 This will help users make trait-based collection offers for the NFTs.
 
-Note that there are actually 4-cases for the state of NFT attributes:
-1. An HTTP 404 error (because the RPC used is down or because the mint hasn't been initialized yet)
-1. An HTTP 404 error (because the mint is considered invalid. This may happen if the game node does not store failed transactions)
-1. A valid response (`value: "valid"`)
-1. An invalid response (`value: "invalid"`)
+Note that there are actually 3-cases for the state of NFT attributes:
+1. An HTTP 404 error. Because (A) The RPC used is down or (B) if using `base-layer` and the mint hasn't been initialized yet.
+2. A valid response (`value: "valid"`)
+3. An invalid response (`value: "invalid"`) when (A) is invalid or (B) if using `app-initialized` and has not been initialized.
 
 #### Tracking invalid mints
 
@@ -270,6 +269,31 @@ sequenceDiagram
     Note right of User: User sees different userTokenId<br />despite mint being valid in both games
     deactivate Game Contract
 ```
+
+## Image URI (Optional)
+
+ERC721 frequently include image metadata, we recommend using the following URI and metadata definition for images:
+
+From [ERC721 Metadata JSON Schema](https://github.com/ethereum/ercs/blob/master/ERCS/erc-721.md) the "image" field definition: `A URI pointing to a resource with mime type image/* representing the asset to which this NFT represents. Consider making any images at a width between 320 and 1080 pixels and aspect ratio between 1.91:1 and 4:5 inclusive.`
+
+Image URI will depend on the used token identifier:
+* App Initialized Image: `${baseURI}${chainIdentifier}/${address}/${userTokenId}.{imageExtension}`
+* Base Layer Image : `${baseURI}${chainIdentifier}/${tokenId}.{imageExtension}`
+
+Image Extensions:
+* imageExtension : `svg` | `png` | `jpeg` | `jpg` | `gif` | etc 
+
+#### Metadata Example with image
+```json
+{
+      "image": "https://rpc.mygame.com/inverseProjection/prc3/monsters/eip155:1/0x1111/1.svg"
+      "attributes": [
+        { "trait_type": "validity", "value": "valid" },
+        ...
+      ],
+      ...
+}
+ ```
 
 ## Rationale
 

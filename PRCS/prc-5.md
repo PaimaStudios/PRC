@@ -101,7 +101,7 @@ There are two possible ways to define the token identifier with different tradeo
 
 #### 1) App Initiated
 
-In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}.json` where `userTokenId` is 1-indexed.  
+In this case, the user first initiates the projection on the app layer by specifying the chain ID they want to project data to as well as the `userAddress` they will mint with and the `amount` of tokens. The game then provides the user with a unique `userTokenId`, and the identifier will be `${chainIdentifier}/${address}/${userTokenId}/${initialAmount}.json` where `userTokenId` is 1-indexed.  
 The game must also note down the `initialAmount` of the locked assets, so that it can later compare this number with the `amount` of tokens the user mints on the base chain. In the event the user mints **less** tokens than is the number of assets that were locked, the game MUST react to this event by unlocking the difference back to the user.
 
 It will be up to the smart contract on the base layer to ensure the combination of `<address, userTokenId>` is unique across all mints. We RECOMMEND setting `userTokenId` to be an address-specific counter increasing in value starting from 1 to implement this.
@@ -281,11 +281,10 @@ To enable these features to work, all tokens in the collection SHOULD contain th
 
 This will help users make trait-based collection offers for the tokens.
 
-Note that there are actually 4-cases for the state of token attributes:
-1. An HTTP 404 error (because the RPC used is down or because the mint hasn't been initialized yet)
-1. An HTTP 404 error (because the mint is considered invalid. This may happen if the game node does not store failed transactions)
-1. A valid response (`value: "valid"`) when `initialAmount` values match
-1. An invalid response (`value: "invalid"`) when `initialAmount` values don't match
+Note that there are actually 3-cases for the state of token attributes:
+1. An HTTP 404 error. Because (A) the RPC used is down or (B) if using `base-layer` and the mint hasn't been initialized yet.
+2. A valid response (`value: "valid"`) when `initialAmount` values match
+3. An invalid response (`value: "invalid"`) when (A) `initialAmount` values don't match or (B) if using `app-initialized` and has not be initialized.
 
 #### Tracking invalid mints
 
@@ -320,6 +319,30 @@ sequenceDiagram
     Note right of User: User sees different userTokenId<br />despite mint being valid in both games
     deactivate Game Contract
 ```
+## Image URI (Optional)
+
+ERC1155 frequently include image metadata, we recommend using the following URI and metadata definition for images:
+
+From [ERC-1155 Metadata URI JSON Schema](https://github.com/ethereum/ercs/blob/master/ERCS/erc-1155.md) the "image" field definition: `A URI pointing to a resource with mime type image/* representing the asset to which this NFT represents. Consider making any images at a width between 320 and 1080 pixels and aspect ratio between 1.91:1 and 4:5 inclusive.`
+
+Image URI will depend on the used token identifier:
+* App Initialized Image: `${baseURI}${chainIdentifier}/${address}/${userTokenId}/${initialAmount}.{imageExtension}`
+* Base Layer Image : `${baseURI}${chainIdentifier}/${tokenId}.{imageExtension}`
+
+Image Extensions:
+* imageExtension : `svg` | `png` | `jpeg` | `jpg` | `gif` | etc 
+
+#### Metadata Example with image
+```json
+{
+      "image": "https://rpc.mygame.com/inverseProjection/prc5/gold/eip155:1/0x1111/1/1000.svg"
+      "attributes": [
+        { "trait_type": "validity", "value": "valid" },
+        ...
+      ],
+      ...
+}
+ ```
 
 ## Rationale
 
