@@ -154,7 +154,7 @@ The DEX contract on the base chain only facilitates the trading (transferring) o
 
 These endpoints are provided by the game node to allow external sites generate a frontend for the DEX.
 
-1. Get game assets and metadata.
+1. Get Game Assets and Metadata.
 
     `GET /dex/`
 
@@ -175,7 +175,7 @@ These endpoints are provided by the game node to allow external sites generate a
     }
     ```
 
-4. Returns Asset Information.
+2. Get Asset information.
 
     `GET /dex/{asset}`
 
@@ -189,10 +189,9 @@ These endpoints are provided by the game node to allow external sites generate a
     ```
 
 
-2. Get array of ERC1155 tokens of `asset` for specified `user` that have been minted or owned in a valid way
--- meaning the `amount` and `tokenId`/`userTokenId` combination matches. This is used by the DEX to get the list of valid assets that user is able to create sell orders for.
+3. Get ERC1155 tokens of `asset` for the specified `wallet` that have been minted or owned in a valid way. This is used by the DEX to get the list of valid assets that user is able to create sell orders for.
 
-    `GET /dex/{asset}/user_valid_minted_assets/{wallet}`
+    `GET /dex/{asset}/wallet/{wallet}`
 
     * asset: valid name for specific game asset token.
     * wallet_address: wallet to query for asset
@@ -208,8 +207,7 @@ These endpoints are provided by the game node to allow external sites generate a
     }
     ```
 
-3. Gets array of created sell orders that are valid -- meaning they have been created with valid minted assets.
-This is used by the DEX to get the list of valid sell orders to display to users wanting to buy. Ordered by lowest price. 
+4. Gets valid created Sell Orders. This is used by the DEX to get the list of valid Sell Orders to display to users wanting to buy. Ordered by lowest price. 
 
     `GET /dex/{asset}/orders?seller=wallet&page=number&limit=number`
 
@@ -231,7 +229,7 @@ This is used by the DEX to get the list of valid sell orders to display to users
     }
     ```
 
-5. Historical data. Allows the UI to draw a chart with historical values.
+5. Get Asset Historical data. Allows the UI to draw a chart with historical values.
 
     `Get /dex/{asset}/historical_price?freq=string&start=number&end=number`
 
