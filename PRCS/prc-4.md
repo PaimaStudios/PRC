@@ -150,6 +150,119 @@ It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade a
 
 The DEX contract on the base chain only facilitates the trading (transferring) of existing Inverse Projected ERC1155 assets, it does not make any assurances about validity of such assets. That aspect is handled by the feature set of the Inverse Projected ERC1155 standard itself. The responsibility of querying the API of game chain to check the validity of the sell order is left up to the front-end providers, as well as the presentation of the possible sell orders.
 
+## Game Node Dex API (OPTIONAL)
+
+These endpoints are provided by the game node to allow external sites generate a frontend for the DEX.
+
+1. Get game assets and metadata.
+
+    `GET /dex/`
+
+    RESPONSE 
+    ```js
+    {
+        assets: {
+            code: string;          // Asset Code
+            description: string;   // Asset Description
+            fromSym: string;       // Name of base Asset  
+            toSym: string;         // Name of unit to convert
+        }[],
+        game: {
+            id: string             // Game ID
+            name?: string          // Optional Game Name
+            version?: string       // Optional Game Version
+        }
+    }
+    ```
+
+4. Returns Asset Information.
+
+    `GET /dex/{asset}`
+
+    * asset: valid name for specific game asset token.
+
+    RESPONSE 
+    ```js
+    { 
+        totalSupply: number;      // Total number of assets 
+    }
+    ```
+
+
+2. Get array of ERC1155 tokens of `asset` for specified `user` that have been minted or owned in a valid way
+-- meaning the `amount` and `tokenId`/`userTokenId` combination matches. This is used by the DEX to get the list of valid assets that user is able to create sell orders for.
+
+    `GET /dex/{asset}/user_valid_minted_assets/{wallet}`
+
+    * asset: valid name for specific game asset token.
+    * wallet_address: wallet to query for asset
+
+    RESPONSE
+    ```js
+    {
+        total: number            // Total number of assets owned
+        stats: {
+            tokenId: number;     // ERC1155 Token ID
+            amount: number;      // Number of assets owned
+        }[];
+    }
+    ```
+
+3. Gets array of created sell orders that are valid -- meaning they have been created with valid minted assets.
+This is used by the DEX to get the list of valid sell orders to display to users wanting to buy. Ordered by lowest price. 
+
+    `GET /dex/{asset}/orders?seller=wallet&page=number&limit=number`
+
+    * asset: valid name for specific game asset token.
+    * seller (OPTIONAL): fetch where wallet address matches wallet
+    * page (OPTIONAL): results page number, default = 1
+    * limit (OPTIONAL): 10, 25, 50, 100, default = 25 
+
+    RESPONSE
+    ```js
+    {
+        stats: {                
+            orderId: number;       // Order unique ID
+            seller: string;        // Seller wallet 
+            tokenId: number;       // ERC1155 TokenID
+            amount: number;        // Number of assets for sale
+            price: string;         // Price per asset
+        }[];
+    }
+    ```
+
+5. Historical data. Allows the UI to draw a chart with historical values.
+
+    `Get /dex/{asset}/historical_price?freq=string&start=number&end=number`
+
+    * asset: valid name for specific game asset token.
+    * freq (OPTIONAL): hour | day | month - range for specific (default: hour)
+    * start (OPTIONAL): start range unix time
+    * end (OPTIONAL): end range unix time
+
+    If start is not defined, 5, 30, 365 days ago are used as defaults.  
+    If end is not defined, now is used.  
+    NOTES:  
+    Data is limited to 170 data points per query (1 week of data per hour)  
+    If data points miss then previous data point is still valid (no changes)  
+
+    RESPONSE 
+    ```js
+    {
+        timeFrom: number;           // First data point date
+        timeTo: number;             // Last data point date
+        data: {
+            time: number;           // Time start date for data point
+            high: number;           // Max price for range
+            low: number;            // Min price for range
+            open: number;           // Start price for range
+            close: number;          // End price for range
+            volumeFrom: number;     // Total Supply of Assets: Unit fromSym
+            volumeTo: number;       // Total Supply of Assets / open: Unit toSym
+        }[];
+    }
+    ```
+
 ## Reference Implementation
 
 You can find all the contracts and interfaces in the Paima Engine codebase [here](https://github.com/PaimaStudios/paima-engine/blob/master/packages/contracts/evm-contracts/contracts/orderbook/).
