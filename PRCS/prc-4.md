@@ -231,7 +231,7 @@ These endpoints are provided by the game node to allow external sites generate a
 
 5. Get Asset Historical data. Allows the UI to draw a chart with historical values.
 
-    `Get /dex/{asset}/historical_price?freq=string&start=number&end=number`
+    `GET /dex/{asset}/historical_price?freq=string&start=number&end=number`
 
     * asset: valid name for specific game asset token.
     * freq (OPTIONAL): hour | day | month - range for specific (default: hour)
@@ -255,8 +255,8 @@ These endpoints are provided by the game node to allow external sites generate a
             low: number;            // Min price for range
             open: number;           // Start price for range
             close: number;          // End price for range
-            volumeFrom: number;     // Total Supply of Assets: Unit fromSym
-            volumeTo: number;       // Total Supply of Assets / open: Unit toSym
+            volumeFrom: number;     // Total Supply of Assets (at `time`) in fromSym Units
+            volumeTo: number;       // Total Supply of Assets (at `time`) in toSym Units
         }[];
     }
     ```
