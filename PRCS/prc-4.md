@@ -194,7 +194,7 @@ These endpoints are provided by the game node to allow external sites generate a
     `GET /dex/{asset}/wallet/{wallet}`
 
     * asset: valid name for specific game asset token.
-    * wallet_address: wallet to query for asset
+    * wallet: wallet to query for asset
 
     RESPONSE
     ```js
