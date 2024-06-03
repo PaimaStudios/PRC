@@ -162,18 +162,54 @@ These endpoints are provided by the game node to allow external sites generate a
     ```js
     {
         assets: {
-            code: string;          // Asset Code
-            description: string;   // Asset Description
-            fromSym: string;       // Name of base Asset  
-            toSym: string;         // Name of unit to convert
-        }[],
+            asset: string;           // Asset Code
+            name?: string;           // OPTIONAL Asset Name
+            description?: string;    // OPTIONAL Asset Description
+            fromSym: string;         // Name of base Asset
+            toSym: string;           // Name of unit to convert
+            contractAsset: string;   // Contract Address for Asset (IERC1155)
+            contractDex: string;     // Contract Address for Dex (OrderbookDex) 
+            contractChain: string;   // CAIP2 Chain Identifier
+            image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image) 
+        }[],  
         game: {
-            id: string             // Game ID
-            name?: string          // Optional Game Name
-            version?: string       // Optional Game Version
+            id: string;              // Game ID
+            name?: string;           // Optional Game Name
+            version?: string;        // Optional Game Version
         }
     }
     ```
+
+    RESPONSE Example
+    ```js
+    {
+        assets: [{
+            asset: 'gold',
+            name: 'Game Gold',
+            description: 'Purchase Items with GG',
+            fromSym: 'GG',
+            toSym: 'ETH',
+            contractAsset: '0x1111',
+            contractDex: '0xaaaa',
+            contractChain: 'eip155:1',
+            image: 'https://game-assets/gg.png'
+        }, {
+            asset: 'silver',
+            name 'Game Silver',
+            description: 'Purchase Magic with GS',
+            fromSym: 'GS',
+            toSym: 'ETH',
+            contractAsset: '0x2222',
+            contractDex: '0xbbbb',
+            contractChain: 'eip155:42161',
+            image: 'https://game-assets/gs.png'
+        }],
+        game: {
+            id: 'my-game',
+            name: 'My Game',
+            version: '1.0.0'
+        }
+    }
 
 2. Get Asset information.
 
@@ -184,7 +220,16 @@ These endpoints are provided by the game node to allow external sites generate a
     RESPONSE 
     ```js
     { 
-        totalSupply: number;      // Total number of assets 
+        asset: string;           // Asset Code
+        name?: string;           // OPTIONAL Asset Name
+        description?: string;    // OPTIONAL Asset Description
+        fromSym: string;         // Name of base Asset
+        toSym: string;           // Name of unit to convert
+        contractAsset: string;   // Contract Address for Asset (IERC1155)
+        contractDex: string;     // Contract Address for Dex (OrderbookDex) 
+        contractChain: string;   // CAIP2 Chain Identifier
+        image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image) 
+        totalSupply: number;     // Total number of assets
     }
     ```
 
