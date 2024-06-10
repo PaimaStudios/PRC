@@ -156,155 +156,165 @@ These endpoints are provided by the game node to allow external sites generate a
 
 1. Get Game Assets and Metadata.
 
-    `GET /dex/`
+   `GET /dex/`
 
-    RESPONSE 
-    ```js
-    {
-        assets: {
-            asset: string;           // Asset Code
-            name?: string;           // OPTIONAL Asset Name
-            description?: string;    // OPTIONAL Asset Description
-            fromSym: string;         // Name of base Asset
-            toSym: string;           // Name of unit to convert
-            contractAsset: string;   // Contract Address for Asset (IERC1155)
-            contractDex: string;     // Contract Address for Dex (OrderbookDex) 
-            contractChain: string;   // CAIP2 Chain Identifier
-            image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image) 
-        }[],  
-        game: {
-            id: string;              // Game ID
-            name?: string;           // Optional Game Name
-            version?: string;        // Optional Game Version
-        }
-    }
-    ```
+   RESPONSE
 
-    RESPONSE Example
-    ```js
-    {
-        assets: [{
-            asset: 'gold',
-            name: 'Game Gold',
-            description: 'Purchase Items with GG',
-            fromSym: 'GG',
-            toSym: 'ETH',
-            contractAsset: '0x1111',
-            contractDex: '0xaaaa',
-            contractChain: 'eip155:1',
-            image: 'https://game-assets/gg.png'
-        }, {
-            asset: 'silver',
-            name 'Game Silver',
-            description: 'Purchase Magic with GS',
-            fromSym: 'GS',
-            toSym: 'ETH',
-            contractAsset: '0x2222',
-            contractDex: '0xbbbb',
-            contractChain: 'eip155:42161',
-            image: 'https://game-assets/gs.png'
-        }],
-        game: {
-            id: 'my-game',
-            name: 'My Game',
-            version: '1.0.0'
-        }
-    }
+   ```js
+   {
+       assets: {
+           asset: string;           // Asset Code
+           name?: string;           // OPTIONAL Asset Name
+           description?: string;    // OPTIONAL Asset Description
+           fromSym: string;         // Name of base Asset
+           toSym: string;           // Name of unit to convert
+           contractAsset: string;   // Contract Address for Asset (IERC1155)
+           contractDex: string;     // Contract Address for Dex (OrderbookDex)
+           contractChain: string;   // CAIP2 Chain Identifier
+           image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image)
+       }[],
+       game: {
+           id: string;              // Game ID
+           name?: string;           // Optional Game Name
+           version?: string;        // Optional Game Version
+       }
+   }
+   ```
+
+   RESPONSE Example
+
+   ```js
+   {
+       assets: [{
+           asset: 'gold',
+           name: 'Game Gold',
+           description: 'Purchase Items with GG',
+           fromSym: 'GG',
+           toSym: 'ETH',
+           contractAsset: '0x1111',
+           contractDex: '0xaaaa',
+           contractChain: 'eip155:1',
+           image: 'https://game-assets/gg.png'
+       }, {
+           asset: 'silver',
+           name 'Game Silver',
+           description: 'Purchase Magic with GS',
+           fromSym: 'GS',
+           toSym: 'ETH',
+           contractAsset: '0x2222',
+           contractDex: '0xbbbb',
+           contractChain: 'eip155:42161',
+           image: 'https://game-assets/gs.png'
+       }],
+       game: {
+           id: 'my-game',
+           name: 'My Game',
+           version: '1.0.0'
+       }
+   }
+
+   ```
 
 2. Get Asset information.
 
-    `GET /dex/{asset}`
+   `GET /dex/{asset}`
 
-    * asset: valid name for specific game asset token.
+   - asset: valid name for specific game asset token.
 
-    RESPONSE 
-    ```js
-    { 
-        asset: string;           // Asset Code
-        name?: string;           // OPTIONAL Asset Name
-        description?: string;    // OPTIONAL Asset Description
-        fromSym: string;         // Name of base Asset
-        toSym: string;           // Name of unit to convert
-        contractAsset: string;   // Contract Address for Asset (IERC1155)
-        contractDex: string;     // Contract Address for Dex (OrderbookDex) 
-        contractChain: string;   // CAIP2 Chain Identifier
-        image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image) 
-        totalSupply: number;     // Total number of assets
-    }
-    ```
+   RESPONSE
 
+   ```js
+   {
+       asset: string;           // Asset Code
+       name?: string;           // OPTIONAL Asset Name
+       description?: string;    // OPTIONAL Asset Description
+       fromSym: string;         // Name of base Asset
+       toSym: string;           // Name of unit to convert
+       contractAsset: string;   // Contract Address for Asset (IERC1155)
+       contractDex: string;     // Contract Address for Dex (OrderbookDex)
+       contractChain: string;   // CAIP2 Chain Identifier
+       image?: string;          // OPTIONAL Asset URL Image (1:1 200px Image)
+       totalSupply: number;     // Total number of assets
+   }
+   ```
 
 3. Get ERC1155 tokens of `asset` for the specified `wallet` that have been minted or owned in a valid way. This is used by the DEX to get the list of valid assets that user is able to create sell orders for.
 
-    `GET /dex/{asset}/wallet/{wallet}`
+   `GET /dex/{asset}/wallet/{wallet}`
 
-    * asset: valid name for specific game asset token.
-    * wallet: wallet to query for asset
+   - asset: valid name for specific game asset token.
+   - wallet: wallet to query for asset
 
-    RESPONSE
-    ```js
-    {
-        total: number            // Total number of assets owned
-        stats: {
-            tokenId: number;     // ERC1155 Token ID
-            amount: number;      // Number of assets owned
-        }[];
-    }
-    ```
+   RESPONSE
 
-4. Gets valid created Sell Orders. This is used by the DEX to get the list of valid Sell Orders to display to users wanting to buy. Ordered by lowest price. 
+   ```js
+   {
+     total: number; // Total number of assets owned
+     stats: {
+       tokenId: number; // ERC1155 Token ID
+       amount: number; // Number of assets owned
+     }
+     [];
+   }
+   ```
 
-    `GET /dex/{asset}/orders?seller=wallet&page=number&limit=number`
+4. Gets valid created Sell Orders. This is used by the DEX to get the list of valid Sell Orders to display to users wanting to buy. Ordered by lowest price.
 
-    * asset: valid name for specific game asset token.
-    * seller (OPTIONAL): fetch where wallet address matches wallet
-    * page (OPTIONAL): results page number, default = 1
-    * limit (OPTIONAL): 10, 25, 50, 100, default = 25 
+   `GET /dex/{asset}/orders?seller=wallet&page=number&limit=number`
 
-    RESPONSE
-    ```js
-    {
-        stats: {                
-            orderId: number;       // Order unique ID
-            seller: string;        // Seller wallet 
-            tokenId: number;       // ERC1155 TokenID
-            amount: number;        // Number of assets for sale
-            price: string;         // Price per asset
-        }[];
-    }
-    ```
+   - asset: valid name for specific game asset token.
+   - seller (OPTIONAL): fetch where wallet address matches wallet
+   - page (OPTIONAL): results page number, default = 1
+   - limit (OPTIONAL): 10, 25, 50, 100, default = 25
+
+   RESPONSE
+
+   ```js
+   {
+     stats: {
+       orderId: number; // Order unique ID
+       seller: string; // Seller wallet
+       tokenId: number; // ERC1155 TokenID
+       amount: number; // Number of assets for sale
+       price: string; // Price per asset
+     }
+     [];
+   }
+   ```
 
 5. Get Asset Historical data. Allows the UI to draw a chart with historical values.
 
-    `GET /dex/{asset}/historical_price?freq=string&start=number&end=number`
+   `GET /dex/{asset}/historical_price?freq=string&start=number&end=number`
 
-    * asset: valid name for specific game asset token.
-    * freq (OPTIONAL): hour | day | month - range for specific (default: hour)
-    * start (OPTIONAL): start range unix time
-    * end (OPTIONAL): end range unix time
+   - asset: valid name for specific game asset token.
+   - freq (OPTIONAL): hour | day | month - range for specific (default: hour)
+   - start (OPTIONAL): start range unix time
+   - end (OPTIONAL): end range unix time
 
-    If start is not defined, 5, 30, 365 days ago are used as defaults.  
-    If end is not defined, now is used.  
-    NOTES:  
-    Data is limited to 170 data points per query (1 week of data per hour)  
-    If data points miss then previous data point is still valid (no changes)  
+   If start is not defined, 5, 30, 365 days ago are used as defaults.  
+   If end is not defined, now is used.  
+   NOTES:  
+   Data is limited to 170 data points per query (1 week of data per hour)  
+   If data points miss then previous data point is still valid (no changes)
 
-    RESPONSE 
-    ```js
-    {
-        timeFrom: number;           // First data point date
-        timeTo: number;             // Last data point date
-        data: {
-            time: number;           // Time start date for data point
-            high: number;           // Max price for range
-            low: number;            // Min price for range
-            open: number;           // Start price for range
-            close: number;          // End price for range
-            volumeFrom: number;     // Total Supply of Assets (at `time`) in fromSym Units
-            volumeTo: number;       // Total Supply of Assets (at `time`) in toSym Units
-        }[];
-    }
-    ```
+   RESPONSE
+
+   ```js
+   {
+     timeFrom: number; // First data point date
+     timeTo: number; // Last data point date
+     data: {
+       time: number; // Time start date for data point
+       high: number; // Max price for range
+       low: number; // Min price for range
+       open: number; // Start price for range
+       close: number; // End price for range
+       volumeFrom: number; // Total Supply of Assets (at `time`) in fromSym Units
+       volumeTo: number; // Total Supply of Assets (at `time`) in toSym Units
+     }
+     [];
+   }
+   ```
 
 ## Reference Implementation
 
