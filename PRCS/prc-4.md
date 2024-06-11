@@ -351,6 +351,9 @@ These endpoints are provided by the game node to allow external sites generate a
        tokenId: number; // ERC1155 TokenID
        amount: number; // Number of assets for sale
        price: string; // Price per asset
+       asset: string; // Asset address
+       makerFee: number; // Maker Fee 
+       takerFee: number; // Taker Fee
      }
      [];
    }
