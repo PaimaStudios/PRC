@@ -48,7 +48,18 @@ interface IOrderbookDex is IERC1155Receiver {
         uint256 makerFee;
         /// @dev The taker fee in basis points, set when order is created, defined by the asset's fee info.
         uint256 takerFee;
+        /// @dev The order creation fee paid by the seller when creating the order, refunded if sell order is cancelled.
+        uint256 creationFeePaid;
     }
+
+    /// @param user The address that claimed the balance.
+    /// @param amount The amount that was claimed.
+    event BalanceClaimed(address indexed user, uint256 amount);
+
+    /// @param asset The asset's address (zero address if changing default fees).
+    /// @param makerFee The new maker fee in basis points.
+    /// @param takerFee The new taker fee in basis points.
+    event FeeInfoChanged(address indexed asset, uint256 makerFee, uint256 takerFee);
 
     /// @param asset The asset's address.
     /// @param assetId The asset's unique token identifier.
@@ -95,18 +106,34 @@ interface IOrderbookDex is IERC1155Receiver {
     /// @param orderId The order's asset-specific unique identifier.
     event OrderCancelled(address indexed asset, uint256 indexed assetId, uint256 indexed orderId);
 
+    /// @param oldFee The old fee value.
+    /// @param newFee The new fee value.
+    event OrderCreationFeeChanged(uint256 oldFee, uint256 newFee);
+
     /// @param receiver The address that received the fees.
     /// @param amount The amount of fees that were withdrawn.
     event FeesWithdrawn(address indexed receiver, uint256 amount);
 
+    /// @notice The balance of `user` that's claimable by `claim` function.
+    function balances(address user) external view returns (uint256);
+
+    /// @notice Withdraw the claimable balance of the caller.
+    function claim() external;
+
     /// @notice The `orderId` of the next sell order for specific `asset`.
     function currentOrderId(address asset) external view returns (uint256);
+
+    /// @notice The total amount of fees collected by the contract.
+    function collectedFees() external view returns (uint256);
 
     /// @notice The default maker fee, used if fee information for asset is not set.
     function defaultMakerFee() external view returns (uint256);
 
     /// @notice The default taker fee, used if fee information for asset is not set.
     function defaultTakerFee() external view returns (uint256);
+
+    /// @notice The flat fee paid by the seller when creating a sell order, to prevent spam.
+    function orderCreationFee() external view returns (uint256);
 
     /// @notice The maximum fee, maker/taker fees cannot be set to exceed this amount.
     function maxFee() external view returns (uint256);
@@ -129,30 +156,36 @@ interface IOrderbookDex is IERC1155Receiver {
     /// MUST revert if called by unauthorized account.
     function setDefaultFeeInfo(uint256 makerFee, uint256 takerFee) external;
 
+    /// @notice Set the flat fee paid by the seller when creating a sell order, to prevent spam. Executable only by the owner.
+    /// @dev MUST revert if called by unauthorized account.
+    function setOrderCreationFee(uint256 fee) external;
+
     /// @notice Returns the Order struct information about an order identified by the `orderId` for specific `asset`.
     function getOrder(address asset, uint256 orderId) external view returns (Order memory);
 
-    /// @notice Creates a sell order for the `assetAmount` of `asset` with ID `assetId` at `pricePerAsset`.
+    /// @notice Creates a sell order for the `assetAmount` of `asset` with ID `assetId` at `pricePerAsset`. Requires payment of `orderCreationFee`.
     /// @dev The order information is saved in a mapping `asset -> orderId -> Order`, with `orderId` being an asset-specific unique incremental identifier.
     /// MUST transfer the `assetAmount` of `asset` with ID `assetId` from the seller to the contract.
     /// MUST emit `OrderCreated` event.
+    /// MUST revert if `msg.value` is less than `orderCreationFee`.
     /// @return The asset-specific unique identifier of the created order.
     function createSellOrder(
         address asset,
         uint256 assetId,
         uint256 assetAmount,
         uint256 pricePerAsset
-    ) external returns (uint256);
+    ) external payable returns (uint256);
 
-    /// @notice Creates a batch of sell orders for the `assetAmount` of `asset` with ID `assetId` at `pricePerAsset`.
+    /// @notice Creates a batch of sell orders for the `assetAmount` of `asset` with ID `assetId` at `pricePerAsset`. Requires payment of `orderCreationFee` times the amount of orders.
     /// @dev This is a batched version of `createSellOrder` that simply iterates through the arrays to call said function.
+    /// MUST revert if `msg.value` is less than `orderCreationFee * assetIds.length`.
     /// @return The asset-specific unique identifiers of the created orders.
     function createBatchSellOrder(
         address asset,
         uint256[] memory assetIds,
         uint256[] memory assetAmounts,
         uint256[] memory pricesPerAssets
-    ) external returns (uint256[] memory);
+    ) external payable returns (uint256[] memory);
 
     /// @notice Consecutively fills an array of orders of `asset` identified by the asset-specific `orderId` of each order,
     /// by providing an exact amount of ETH and requesting a specific minimum amount of asset to receive.
@@ -203,7 +236,7 @@ interface IOrderbookDex is IERC1155Receiver {
 
 ## Rationale
 
-It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade against these pools. This is unsuitable for this use-case because a contract on base chain has no means of knowing the state of the game chain so the contract cannot automate market making. Instead, buyers have to be sending tokens directly to the sellers.
+It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade against these pools. This is unsuitable for this use-case because a contract on base chain has no means of knowing the state of the game chain so the contract cannot automate market making. Instead, buyers have to be explicitely buying only those tokens that they deem to be valid.
 
 ### The idea:
 
@@ -216,13 +249,37 @@ It's not an AMM. In a typical AMM dex, there are liquidity pools and you trade a
      - `address seller` - the seller's address.
      - `uint256 makerFee` - maker fee expressed in basis points, depicting the ratio of payment tokens that will be deducted from the payment to the seller
      - `uint256 takerFee` - taker fee expressed in basis points, depicting the ratio of payment tokens that are added to the purchase cost of the order
+     - `uint256 creationFeePaid` - fee paid by the seller when creating the order, refunded if sell order is cancelled
+       - This fee exists to deter from an attack of creating thousands of extremely small sell orders, which would cost large amounts of gas to fill.
    - Function to cancel a sell order of specified `orderId`
    - Batch functions `createBatchSellOrder` and `cancelBatchSellOrder` of the abovementioned functions
-   - Function to fill sell orders (in other words - buy). There is no "buy order" that persists, and rather the buy function directly transfers the value specified by price defined in the orders to the sellers. There are 2 variations of fill function:
+   - Function to fill sell orders (in other words - buy). There is no "buy order" that persists, and rather the buy function directly executes the sell order fill and transfers the value specified by price defined in the orders to the contract and attributing it to the sellers balance mapping. There are 2 variations of fill function:
      - `fillOrdersExactEth` - consecutively fills the array of specified orders until all provided ETH is spent and a specified minimum amount of asset has been achieved. Example: You want to buy as much asset as possible for 1 ETH.
      - `fillOrdersExactAsset` - consecutively fills the array of specified orders until specified exact amount of asset has been achieved, and returns the excess ETH back to the sender. Example: You want to buy 1000 units of asset as cheaply as possible.
 
-The DEX contract on the base chain only facilitates the trading (transferring) of existing Inverse Projected ERC1155 assets, it does not make any assurances about validity of such assets. That aspect is handled by the feature set of the Inverse Projected ERC1155 standard itself. The responsibility of querying the API of game chain to check the validity of the sell order is left up to the front-end providers, as well as the presentation of the possible sell orders.
+The DEX contract on the base chain only facilitates the trading (transferring) of existing Inverse Projected ERC1155 assets, it does not make any assurances about validity of such assets. That aspect is handled by the feature set of the Inverse Projected ERC1155 standard itself. The responsibility of querying the API of game chain to check the validity of the sell order is left up to the front-end providers, as well as the presentation of the valid sell orders.
+
+### Claim-based system of payments
+
+When sell orders are filled, payments attributed to the sellers are **not** transferred directly in the fill transaction, but rather a balance value in the contract is updated for each seller. A seller can then claim their balance via the `claim` function and get their balance transferred to them.
+
+This was done because if there were direct transfers to the sellers in the fill transaction, there would be two problems with that:
+
+1. When transferring eth to the seller, all gas is forwarded. A malicious smart contract seller could be consuming large amounts of gas for arbitrary execution when receiving eth.
+2. Any one of those transfers can fail, and that would revert the transaction. Why the transfer would fail - for example somebody might make a malicious smart contract that always fails on receiving eth and create sell orders with that contract.
+
+There are some other options on how to fix the:
+
+- first issue:
+  - Set gas limit to some value, possibly calculated to result in the sell order creation fee
+    - Not great because there might be a legit reason why seller should consume gas over the limit (smart contract wallet, any smart contracts built on top of the DEX)
+- second issue:
+  - Don't revert on transfer fail, ignore sell order, return payment to buyer
+    - Not great because an always-reverting (but good priced) sell order would end up being tried to fill over and over by multiple fill requests, unnecessarily wasting gas of buyers
+  - Don't revert on transfer fail, cancel the sell order, return payment to buyer
+    - Might potentially be annoying to have sell order cancelled because of a transfer fail
+
+These fixes are suboptimal in comparison with the fix of adopting a claim-based system. Admittedly, it results in a slightly worse UX for the sellers because they are forced to do one more transaction to get their payment, but the pros dramatically outweight this one con.
 
 ## Game Node Dex API (OPTIONAL)
 
@@ -352,7 +409,7 @@ These endpoints are provided by the game node to allow external sites generate a
        amount: number; // Number of assets for sale
        price: string; // Price per asset
        asset: string; // Asset address
-       makerFee: number; // Maker Fee 
+       makerFee: number; // Maker Fee
        takerFee: number; // Taker Fee
      }
      [];
